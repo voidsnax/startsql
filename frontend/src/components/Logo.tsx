@@ -1,0 +1,29 @@
+interface Props {
+  size?: number;
+}
+
+export function Logo({ size = 26 }: Props) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="15.75 12.75 32.5 34.5"
+      width={size}
+      height={size}
+      aria-hidden="true"
+      style={{ display: 'block' }}
+    >
+      <g
+        stroke="#ffffff"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
+        <ellipse cx="32" cy="20" rx="14" ry="5" />
+        <path d="M18,20 v10 c0,2.76 6.27,5 14,5 s14,-2.24 14,-5 v-10" />
+        <path d="M18,30 v10 c0,2.76 6.27,5 14,5 s14,-2.24 14,-5 v-10" />
+      </g>
+      <polygon points="30,18 36,20 30,22" fill="#ffffff" />
+    </svg>
+  );
+}

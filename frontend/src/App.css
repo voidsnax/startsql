@@ -1,0 +1,1517 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-primary: #0f1117;
+  --bg-secondary: #1a1d27;
+  --bg-tertiary: #232733;
+  --bg-code: #0a0c12;
+  --border: #2d3142;
+  --text-primary: #e6e8ee;
+  --text-secondary: #9ca3af;
+  --text-dim: #6b7280;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99, 102, 241, 0.12);
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  height: 100dvh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* ───────────── App shell ───────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ───────────── Header ───────────── */
+.app-header {
+  flex-shrink: 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+
+.logo-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.05;
+}
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.logo-tagline {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.01em;
+}
+
+.lesson-select {
+  flex: 1;
+  max-width: 460px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.lesson-select:focus {
+  border-color: var(--accent);
+}
+
+.app-progress {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.app-progress strong {
+  color: var(--accent-hover);
+}
+
+/* ───────────── Body: main + tutor ───────────── */
+.app-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  overflow: hidden;
+  min-height: 0;
+  transition: grid-template-columns 0.22s ease;
+}
+
+.app-body.chat-collapsed {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+.app-body.editor-fullscreen {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ───────────── Main area (lesson / editor / results) ───────────── */
+.main-area {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+  min-height: 0;
+}
+
+.lesson-row {
+  flex: 1.2 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.main-area.lesson-collapsed .lesson-row {
+  flex: 0 0 48px;
+  min-height: 48px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.workzone-row {
+  flex: 1 1 0;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-row {
+  flex: 1 1 0;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.results-row {
+  flex: 1 1 0;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.18s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.editor-strip {
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.editor-strip:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.strip-chevron {
+  color: var(--accent-hover);
+  font-size: 10px;
+}
+
+.strip-label {
+  letter-spacing: 0.02em;
+}
+
+/* ───────────── Lesson panel ───────────── */
+.lesson-panel {
+  padding: 28px 40px 24px;
+  min-height: 0;
+}
+
+.lesson-panel-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-primary);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.lesson-panel-collapsed:hover {
+  background: var(--bg-tertiary);
+}
+
+.lesson-collapsed-chevron {
+  font-size: 10px;
+  color: var(--accent-hover);
+}
+
+.lesson-collapsed-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lesson-collapsed-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lesson-collapsed-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.lesson-header {
+  margin-bottom: 20px;
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lesson-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.lesson-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.lesson-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.lesson-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lesson-body p {
+  margin-bottom: 14px;
+}
+
+.lesson-body h1,
+.lesson-body h2,
+.lesson-body h3 {
+  margin: 20px 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.lesson-body ul,
+.lesson-body ol {
+  margin: 8px 0 16px 22px;
+}
+
+.lesson-body li {
+  margin: 4px 0;
+}
+
+.lesson-body strong {
+  color: #c7d2fe;
+  font-weight: 600;
+}
+
+.lesson-body table {
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 14px 0 18px;
+  font-size: 13px;
+  width: auto;
+  min-width: 60%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.lesson-body thead {
+  background: var(--bg-tertiary);
+}
+
+.lesson-body th {
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.lesson-body td {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+}
+
+.lesson-body tr:last-child td {
+  border-bottom: none;
+}
+
+.lesson-body td:first-child {
+  color: var(--accent-hover);
+}
+
+/* ───────────── Markdown code ───────────── */
+.md-inline-code {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.md-code-block {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.md-code-block code {
+  background: none;
+  color: #d1d5f0;
+  padding: 0;
+}
+
+/* ───────────── Schema preview ───────────── */
+.schema-preview {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.schema-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.schema-tables {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.schema-table {
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.schema-table-name {
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  border-bottom: 1px solid var(--border);
+}
+
+.schema-columns {
+  padding: 6px 0;
+}
+
+.schema-column {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.schema-col-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.schema-col-type {
+  color: var(--text-dim);
+}
+
+.schema-col-note {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-family: -apple-system, sans-serif;
+  font-style: italic;
+}
+
+/* ───────────── SQL Editor ───────────── */
+.sql-editor {
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.editor-table-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.editor-table-hint strong {
+  color: var(--accent-hover);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.editor-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary kbd {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+  font-family: var(--font-mono);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.editor-codemirror {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-codemirror .cm-theme,
+.editor-codemirror .cm-editor {
+  font-size: 13.5px;
+  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.editor-codemirror .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-codemirror .cm-scroller {
+  overflow: auto;
+}
+
+/* ───────────── Result panel ───────────── */
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--bg-primary);
+  flex: 1;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.result-header .result-meta {
+  margin-left: auto;
+}
+
+.result-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.result-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.result-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.result-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+
+.result-scroll th,
+.result-scroll td {
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.result-scroll th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.result-scroll tr:last-child td {
+  border-bottom: none;
+}
+
+.result-scroll tr:hover td {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.result-empty,
+.result-error,
+.result-success {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.result-empty {
+  color: var(--text-dim);
+}
+
+.result-error {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.06);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.result-success {
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+/* ───────────── Chat panel ───────────── */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  min-height: 0;
+}
+
+.chat-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-collapse-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.chat-collapse-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.chat-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-title-mark {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.chat-status {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.chat-clear-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.chat-clear-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.chat-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.chat-empty {
+  color: var(--text-secondary);
+  padding: 8px 4px;
+}
+
+.chat-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.chat-empty-sub {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.chat-msg {
+  max-width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.chat-msg-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: white;
+  border-bottom-right-radius: 3px;
+  white-space: pre-wrap;
+}
+
+.chat-msg-assistant {
+  align-self: flex-start;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 3px;
+  white-space: normal;
+}
+
+.chat-msg-assistant p {
+  margin: 0 0 6px 0;
+}
+
+.chat-msg-assistant p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-msg-assistant ul,
+.chat-msg-assistant ol {
+  margin: 6px 0 8px 18px;
+}
+
+.chat-msg-assistant li {
+  margin: 2px 0;
+}
+
+.chat-msg-assistant strong {
+  color: #c7d2fe;
+}
+
+.chat-msg-assistant a {
+  color: var(--accent-hover);
+}
+
+.chat-typing {
+  color: var(--text-secondary);
+}
+
+.chat-input-row {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  resize: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+}
+
+.chat-input-row textarea:focus {
+  border-color: var(--accent);
+}
+
+
+@media (max-width: 900px) {
+  /* ───── Viewport height ───── */
+  body,
+ .app-shell {
+  height: 100dvh;
+  }
+
+  /* ───── Single column body ───── */
+  .app-body,
+  .app-body.chat-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  /* ───── Compact header (keep tagline) ───── */
+  .app-header {
+  height: 52px;
+  min-height: 52px;
+  padding: 6px 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  }
+
+  .logo-text {
+    font-size: 12.5px;
+  }
+
+  .logo-tagline {
+    font-size: 9px;
+  }
+
+  .logo-mark,
+  .logo-mark svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .lesson-select {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  font-size: 12px;
+  padding: 5px 8px;
+  text-overflow: ellipsis;
+}
+
+  .app-progress {
+    font-size: 11.5px;
+  }
+
+  /* ───── Editor toolbar: minimal ───── */
+  .editor-toolbar {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .editor-table-hint {
+    flex-basis: 100%;
+    order: 3;
+    font-size: 11.5px;
+  }
+
+  /* Hide lesson toggle — fullscreen-on-focus replaces it */
+  .lesson-toggle-btn {
+    display: none;
+  }
+
+  /* On mobile: hide Fullscreen button when NOT in fullscreen.
+    When in fullscreen, it becomes the exit button (⤡) and must stay visible. */
+  .editor-toolbar:not(.fullscreen) .editor-actions .icon-btn:first-child {
+    display: none;
+  }
+
+  /* Hide text labels inside icon buttons (keep only the glyph) */
+  .icon-btn .icon-label {
+    display: none;
+  }
+
+  .icon-btn {
+    font-size: 13px;
+    padding: 4px 9px;
+  }
+
+  /* Ctrl+Enter hint is useless on touch */
+  .btn-primary kbd {
+    display: none;
+  }
+
+  /* ───── Chat: full-screen overlay ───── */
+  .chat-panel {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    z-index: 100;
+    border: none;
+    border-radius: 0;
+    background: var(--bg-secondary);
+  }
+
+  .chat-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chat-input-row {
+    flex-shrink: 0;
+  }
+
+  .chat-header {
+    padding: 14px 18px;
+  }
+
+  .chat-collapse-btn {
+    font-size: 22px;
+    width: 34px;
+    height: 34px;
+  }
+
+  /* ───── Floating chat button ───── */
+  .chat-strip {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    left: auto;
+    top: auto;
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-left: none;
+    z-index: 100;
+    padding: 0;
+    flex-direction: row;
+    gap: 0;
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.35),
+      0 0 0 1px rgba(99, 102, 241, 0.25);
+    animation: none;
+  }
+
+  .chat-strip:hover {
+    background: var(--accent-hover);
+    color: white;
+  }
+
+  .chat-strip-label {
+    display: none;
+  }
+
+  .chat-strip-icon {
+    font-size: 22px;
+    color: white;
+  }
+
+  .lesson-panel {
+    padding: 18px 18px 14px;
+  }
+
+  .lesson-title {
+    font-size: 18px;
+  }
+
+  .lesson-row,
+  .editor-row,
+  .results-row {
+    min-height: 0;
+  }
+
+  /* Fullscreen on mobile: editor takes the space, results scroll below */
+  .app-body.editor-fullscreen .editor-row {
+    flex: 1 1 0;
+  }
+
+  .app-body.editor-fullscreen .results-row {
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
+  /* ───── Smooth internal scrolling ───── */
+  .lesson-panel,
+  .result-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ───────────── Lesson toggle button (in editor toolbar) ───────────── */
+.lesson-toggle-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.lesson-toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+
+/* ───────────── Editor toolbar icon buttons ───────────── */
+.icon-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+
+/* ───────────── Collapsed chat strip ───────────── */
+.chat-strip {
+  background: var(--bg-secondary);
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+  height: 100%;
+  font-family: inherit;
+}
+
+.chat-strip:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.chat-strip-icon {
+  font-size: 18px;
+  color: var(--accent-hover);
+}
+
+.chat-strip-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* ───────────── Fullscreen mode ───────────── */
+.app-body.editor-fullscreen .main-area {
+  grid-column: 1 / -1;
+}
+
+.app-body.editor-fullscreen .editor-row {
+  flex: 1;
+  min-height: 200px;
+}
+
+.app-body.editor-fullscreen .results-row {
+  flex: 1.2;
+  min-height: 200px;
+}
+
+/* ───────────── Result header actions ───────────── */
+.result-hide-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  margin-left: 8px;
+}
+
+.result-hide-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.progress-reset {
+  margin-left: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.progress-reset:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+
+/* ───────────── Fullscreen: hide lesson ───────────── */
+.app-body.editor-fullscreen .lesson-row {
+  display: none;
+}
+
+/* ───────────── Did you know block ───────────── */
+.did-you-know {
+  margin-top: 22px;
+  padding: 14px 18px;
+  background: rgba(99, 102, 241, 0.07);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+
+.did-you-know-heading {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.did-you-know-body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-primary);
+}
+
+.did-you-know-body p {
+  margin: 0;
+}
+
+.did-you-know-body code {
+  font-size: 12px;
+}
+
+/* ───────────── Short viewport handling ───────────── */
+@media (max-height: 750px) {
+  .lesson-row {
+    min-height: 80px;
+  }
+  .editor-row,
+  .results-row {
+    min-height: 120px;
+  }
+}
+
+@media (max-height: 600px) {
+  .lesson-row {
+    min-height: 48px;
+  }
+  .editor-row,
+  .results-row {
+    min-height: 100px;
+  }
+  .app-header {
+    height: 48px;
+  }
+  .lesson-title {
+    font-size: 19px;
+  }
+}
+
+/* ───────────── Narrow viewport padding ───────────── */
+@media (max-width: 1100px) {
+  .lesson-panel {
+    padding: 24px 28px 20px;
+  }
+}
+
+/* ───────────── Syntax highlighting (highlight.js) ───────────── */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+  color: #c792ea;
+  font-weight: 600;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #c3e88d;
+}
+
+.hljs-number {
+  color: #f78c6c;
+}
+
+.hljs-comment {
+  color: #5c6370;
+  font-style: italic;
+}
+
+.hljs-operator,
+.hljs-punctuation {
+  color: #89ddff;
+}
+
+.hljs-built_in,
+.hljs-title,
+.hljs-function,
+.hljs-name {
+  color: #82aaff;
+}
+
+.hljs-attr,
+.hljs-attribute {
+  color: #ffcb6b;
+}
+
+.hljs-variable,
+.hljs-params {
+  color: #e6e8ee;
+}
+
+@media (max-width: 900px) {
+  /* Pin the fullscreen body to the viewport so page can't scroll */
+  .app-body.editor-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100vw;
+    height: 100dvh;
+  }
+
+  /* Truly hide the header in fullscreen */
+  .app-shell--fullscreen .app-header {
+    display: none;
+  }
+
+  /* Editor keeps priority; results capped at 45% */
+  .main-area.has-results .editor-row {
+    flex: 1.2 1 0;
+  }
+
+  /* Allow rows to shrink freely so no empty blocks appear */
+  .lesson-row,
+  .editor-row,
+  .results-row {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .logo-tagline {
+    display: none;
+  }
+}
+
+.lesson-tasks {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.lesson-task-section {
+  margin-bottom: 22px;
+}
+
+.lesson-task-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.lesson-task-prompt {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  padding: 14px 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.12),
+    rgba(99, 102, 241, 0.04)
+  );
+  border: 1px dashed rgba(99, 102, 241, 0.45);
+  border-radius: 8px;
+}
+
+.lesson-task-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.lesson-task-nav-spacer {
+  flex: 1;
+}
+
+.task-counter {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.task-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.task-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.task-dot:hover {
+  border-color: var(--accent);
+}
+
+.task-dot.done {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.task-dot.current {
+  box-shadow: 0 0 0 2px var(--accent-hover);
+}
+
+.btn-check {
+  margin-left: auto;
+}
+
+.task-feedback {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.task-feedback-success {
+  color: var(--success);
+}
+
+.task-feedback-fail {
+  color: var(--warning);
+}
+
+.task-nudge {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.btn-next:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: var(--text-dim);
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+@media (max-width: 900px) {
+  .lesson-tasks {
+    margin-top: 22px;
+    padding-top: 18px;
+  }
+
+  .lesson-task-top {
+    gap: 10px;
+  }
+
+  .task-dots {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .lesson-task-nav {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lesson-task-nav .btn-secondary,
+  .lesson-task-nav .btn-primary {
+    width: 100%;
+  }
+
+  .btn-check {
+    margin-left: auto;
+  }
+}
+
+/* Fade the mobile chat FAB when results are showing so it doesn't
+   visually block the table. Tap area is unaffected. */
+@media (max-width: 900px) {
+  .app-body.has-results .chat-strip {
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+  }
+
+  .app-body.has-results .chat-strip:active,
+  .app-body.has-results .chat-strip:focus {
+    opacity: 1;
+  }
+}
