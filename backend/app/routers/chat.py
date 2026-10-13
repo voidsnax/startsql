@@ -27,9 +27,9 @@ async def chat(request: ChatRequest):
 
     messages = [m.model_dump() for m in request.messages]
 
-    def event_stream():
+    async def event_stream():
         try:
-            for chunk in stream_chat(
+            async for chunk in stream_chat(
                 messages=messages,
                 lesson_title=request.lesson_title,
                 lesson_content=request.lesson_content,

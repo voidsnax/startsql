@@ -1,10 +1,10 @@
-import time
+import asyncio
 
-from openai import APIConnectionError, APIError, OpenAI, RateLimitError
+from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
 
 from .config import BASE_URL, GROQ_API_KEY, MODEL_NAME
 
-client = OpenAI(
+client = AsyncOpenAI(
     api_key=GROQ_API_KEY,
     base_url=BASE_URL,
 )
@@ -97,7 +97,8 @@ def _to_openai_messages(
     messages: list[dict],
     context_prefix: str,
 ) -> list[dict]:
-    """
+    """Convert our messages to OpenAI chat format.
+
     Injects the context prefix into the *last* user turn.
     """
     out: list[dict] = []
@@ -105,7 +106,6 @@ def _to_openai_messages(
         role = "user" if msg["role"] == "user" else "assistant"
         content = msg["content"] or ""
 
-        # Only inject context into the final user message
         if i == len(messages) - 1 and role == "user" and context_prefix:
             content = context_prefix + content
 
@@ -113,26 +113,26 @@ def _to_openai_messages(
     return out
 
 
-def _stream_with_retry(
+async def _stream_with_retry(
     messages: list[dict],
     system_prompt: str,
     max_retries: int = 3,
 ):
-    """Retry on transient errors."""
+    """Stream tokens from Groq with retry on transient errors."""
     delay = 1.0
     for attempt in range(max_retries + 1):
         yielded_any = False
         try:
-            stream = client.chat.completions.create(
+            stream = await client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    *messages,
+                    *messages, # type: ignore
                 ],
                 temperature=0.5,
                 stream=True,
-            )
-            for chunk in stream:
+            ) # type: ignore
+            async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yielded_any = True
                     yield chunk.choices[0].delta.content
@@ -146,11 +146,11 @@ def _stream_with_retry(
             if not is_transient or yielded_any or attempt == max_retries:
                 raise
             print(f"[llm] transient error (attempt {attempt + 1}): {e}")
-            time.sleep(delay)
+            await asyncio.sleep(delay)
             delay *= 2
 
 
-def stream_chat(
+async def stream_chat(
     messages: list[dict],
     lesson_title: str | None = None,
     lesson_content: str | None = None,
@@ -181,4 +181,5 @@ def stream_chat(
 
     openai_messages = _to_openai_messages(messages, context_prefix)
 
-    yield from _stream_with_retry(openai_messages, SYSTEM_PROMPT)
+    async for chunk in _stream_with_retry(openai_messages, SYSTEM_PROMPT):
+        yield chunk
