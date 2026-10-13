@@ -62,7 +62,7 @@ export function SqlEditor({
 
         {tableName && (
           <span className="editor-table-hint">
-            Tables: <strong>{tableName}</strong>
+            Default Tables: <strong>{tableName}</strong>
           </span>
         )}
 
