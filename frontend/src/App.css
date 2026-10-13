@@ -310,8 +310,8 @@ button {
 }
 
 .lesson-body {
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.75;
   color: var(--text-primary);
   max-width: 820px;
   margin-left: auto;
@@ -407,7 +407,7 @@ button {
   margin: 14px 0;
   overflow-x: auto;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.55;
 }
 
@@ -812,7 +812,7 @@ button {
   max-width: 100%;
   padding: 9px 12px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.55;
   word-break: break-word;
 }
@@ -920,8 +920,7 @@ button {
     font-size: 9px;
   }
 
-  .logo-mark,
-  .logo-mark svg {
+  .app-logo svg {
     width: 22px;
     height: 22px;
   }
@@ -1026,7 +1025,6 @@ button {
     background: var(--accent);
     color: white;
     border: none;
-    border-left: none;
     z-index: 100;
     padding: 0;
     flex-direction: row;
