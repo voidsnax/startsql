@@ -13,7 +13,8 @@ export interface ChatContext {
   taskPrompt?: string;
   taskNumber?: number;
   taskTotal?: number;
-  lastQuery?: string;
+  editorQuery?: string;
+  lastExecutedQuery?: string;
   lastResult?: string;
   lastError?: string;
 }
@@ -32,6 +33,8 @@ export function useChat() {
       const userMessage: ChatMessage = { role: 'user', content: text };
       const nextMessages = [...messages, userMessage];
       setMessages([...nextMessages, { role: 'assistant', content: '' }]);
+      const MAX_HISTORY = 8;
+      const trimmedForApi = nextMessages.slice(-MAX_HISTORY);
       setStreaming(true);
 
       const controller = new AbortController();
@@ -42,7 +45,7 @@ export function useChat() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: nextMessages,
+            messages: trimmedForApi,
             lesson_id: context.lessonId,
             lesson_title: context.lessonTitle,
             lesson_content: context.lessonContent,
@@ -50,7 +53,8 @@ export function useChat() {
             task_prompt: context.taskPrompt,
             task_number: context.taskNumber,
             task_total: context.taskTotal,
-            last_query: context.lastQuery,
+            editor_query: context.editorQuery,
+            last_executed_query: context.lastExecutedQuery,
             last_result: context.lastResult,
             last_error: context.lastError,
           }),
