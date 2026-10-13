@@ -37,7 +37,8 @@ async def chat(request: ChatRequest):
                 task_prompt=request.task_prompt,
                 task_number=request.task_number,
                 task_total=request.task_total,
-                last_query=request.last_query,
+                editor_query=request.editor_query,
+                last_executed_query=request.last_executed_query,
                 last_result=request.last_result,
                 last_error=request.last_error,
             ):

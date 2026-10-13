@@ -1,26 +1,40 @@
 import time
 
-from google import genai
-from google.genai import types
+from openai import APIConnectionError, APIError, OpenAI, RateLimitError
 
-from .config import GEMINI_API_KEY, MODEL_NAME
+from .config import BASE_URL, GROQ_API_KEY, MODEL_NAME
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url=BASE_URL,
+)
 
-SYSTEM_PROMPT = """You are a patient, friendly SQL tutor sitting beside a beginner.
+SYSTEM_PROMPT = """You are a patient, friendly SQL tutor for absolute beginners.
 
-Rules:
-- Explain in simple, plain language. Avoid jargon. Define terms when needed.
+Style:
+- Explain in simple, plain language. Define any jargon you use.
+- Keep answers under 120 words unless the student asks for more detail.
+- Use short SQL examples when helpful.
+- Stay on topic: SQL, databases, and the current lesson.
+
+Tutoring behavior:
 - For exercises, give a hint before the full solution.
 - If the student explicitly asks for the solution, provide it with a brief explanation.
 - When the student makes an error, first acknowledge what they got right.
-- Keep answers under 120 words unless the student asks for more detail.
-- Use short SQL examples when helpful.
-- Stay focused on SQL, databases, and the current lesson.
-- Use the supplied lesson, schema, current task, query, result, and error as context.
-- Never invent tables, columns, errors, or lesson content.
 
-You are context-aware: if the student is working on a specific task, focus your help on that task. Don't jump ahead to future lessons.
+Context you receive:
+- Lesson content, database schema, the current task, what the student has typed in the editor, what they actually ran, and any error.
+- The editor contains what the student has typed. The executed query is what they ran. Never claim they ran something that only appears in the editor.
+
+How to use the context:
+- Answer what the student asked, not what you assume they want.
+- If they ask about a concept, explain the concept — don't push them back to the current task.
+- Reference the task, query, or result only when their question is about it.
+- If their question is unrelated to the task but related to the lesson, help with the lesson.
+
+Hard limits:
+- Never invent tables, columns, tasks, errors, or lesson content.
+- Don't jump ahead to future lessons.
 """
 
 
@@ -31,7 +45,8 @@ def build_context_prefix(
     task_prompt: str | None,
     task_number: int | None,
     task_total: int | None,
-    last_query: str | None,
+    editor_query: str | None,
+    last_executed_query: str | None,
     last_result: str | None,
     last_error: str | None,
 ) -> str:
@@ -54,14 +69,23 @@ def build_context_prefix(
         )
         parts.append(f"{header}\n{task_prompt}")
 
-    if last_query:
-        parts.append(f"Student's last SQL query:\n{last_query[:2000]}")
+    if editor_query:
+        parts.append(
+            f"What the student currently has typed in the editor "
+            f"(NOT yet executed):\n{editor_query[:2000]}"
+        )
+
+    if last_executed_query:
+        parts.append(
+            f"The last query the student actually executed:\n"
+            f"{last_executed_query[:2000]}"
+        )
 
     if last_result:
-        parts.append(f"Query result:\n{last_result[:2000]}")
+        parts.append(f"Result of that executed query:\n{last_result[:2000]}")
 
     if last_error:
-        parts.append(f"Error the student saw:\n{last_error[:1000]}")
+        parts.append(f"Error from that executed query:\n{last_error[:1000]}")
 
     if not parts:
         return ""
@@ -69,36 +93,55 @@ def build_context_prefix(
     return "[CONTEXT]\n" + "\n\n".join(parts) + "\n[/CONTEXT]\n\n"
 
 
-def _to_contents(messages: list[dict]) -> list[types.Content]:
-    contents: list[types.Content] = []
-    for msg in messages:
-        role = "user" if msg["role"] == "user" else "model"
-        text = msg["content"] or ""
-        contents.append(
-            types.Content(role=role, parts=[types.Part(text=text)])
-        )
-    return contents
+def _to_openai_messages(
+    messages: list[dict],
+    context_prefix: str,
+) -> list[dict]:
+    """
+    Injects the context prefix into the *last* user turn.
+    """
+    out: list[dict] = []
+    for i, msg in enumerate(messages):
+        role = "user" if msg["role"] == "user" else "assistant"
+        content = msg["content"] or ""
+
+        # Only inject context into the final user message
+        if i == len(messages) - 1 and role == "user" and context_prefix:
+            content = context_prefix + content
+
+        out.append({"role": role, "content": content})
+    return out
 
 
-def _stream_with_retry(contents, config, max_retries: int = 3):
+def _stream_with_retry(
+    messages: list[dict],
+    system_prompt: str,
+    max_retries: int = 3,
+):
+    """Retry on transient errors."""
     delay = 1.0
     for attempt in range(max_retries + 1):
         yielded_any = False
         try:
-            stream = client.models.generate_content_stream(
+            stream = client.chat.completions.create(
                 model=MODEL_NAME,
-                contents=contents,
-                config=config,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    *messages,
+                ],
+                temperature=0.5,
+                stream=True,
             )
             for chunk in stream:
-                if chunk.text:
+                if chunk.choices and chunk.choices[0].delta.content:
                     yielded_any = True
-                    yield chunk.text
+                    yield chunk.choices[0].delta.content
             return
-        except Exception as e:
+        except (RateLimitError, APIConnectionError, APIError) as e:
             msg = str(e)
             is_transient = any(
-                token in msg for token in ("503", "UNAVAILABLE", "500", "INTERNAL")
+                token in msg
+                for token in ("503", "UNAVAILABLE", "500", "INTERNAL", "429")
             )
             if not is_transient or yielded_any or attempt == max_retries:
                 raise
@@ -115,14 +158,13 @@ def stream_chat(
     task_prompt: str | None = None,
     task_number: int | None = None,
     task_total: int | None = None,
-    last_query: str | None = None,
+    editor_query: str | None = None,
+    last_executed_query: str | None = None,
     last_result: str | None = None,
     last_error: str | None = None,
 ):
     if not messages:
         raise ValueError("At least one message is required.")
-
-    contents = _to_contents(messages)
 
     context_prefix = build_context_prefix(
         lesson_title=lesson_title,
@@ -131,21 +173,12 @@ def stream_chat(
         task_prompt=task_prompt,
         task_number=task_number,
         task_total=task_total,
-        last_query=last_query,
+        editor_query=editor_query,
+        last_executed_query=last_executed_query,
         last_result=last_result,
         last_error=last_error,
     )
 
-    if context_prefix and contents[-1].role == "user":
-        user_text = contents[-1].parts[0].text or "" # type: ignore
-        contents[-1] = types.Content(
-            role="user",
-            parts=[types.Part(text=context_prefix + user_text)],
-        )
+    openai_messages = _to_openai_messages(messages, context_prefix)
 
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT,
-        temperature=0.5,
-    )
-
-    yield from _stream_with_retry(contents, config)
+    yield from _stream_with_retry(openai_messages, SYSTEM_PROMPT)
