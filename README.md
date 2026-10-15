@@ -2,6 +2,8 @@
 
 An interactive SQL learning platform for absolute beginners, with an AI tutor.
 
+![StartSQL screenshot](assets/screenshot.png)
+
 ## Prerequisites
 
 - Python 3.12+
