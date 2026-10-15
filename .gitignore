@@ -25,6 +25,7 @@ dist-ssr
 
 # Secrets
 .env
+frontend/.env*.local
 
 .venv/
 __pycache__/
