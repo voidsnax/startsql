@@ -1,6 +1,6 @@
 # StartSQL
 
-An interactive SQL learning platform for absolute beginners, with an AI tutor.
+An interactive SQL learning platform for beginners, with an AI tutor.
 
 ![StartSQL screenshot](assets/screenshot.png)
 
@@ -76,4 +76,4 @@ npm run dev
 
 - Lessons and progress live entirely in the browser
 - SQL queries run client-side via sql.js (SQLite in WebAssembly)
-- The backend only handles chat: it forwards messages to Groq with lesson/task context and streams tokens back over Server-Sent Events (SSE)
+- The backend only handles chat: it forwards messages to Groq with lesson/task context and streams the reply back to the browser in real time
