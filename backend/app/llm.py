@@ -1,12 +1,11 @@
-import asyncio
-
-from openai import APIConnectionError, APIError, AsyncOpenAI, RateLimitError
+from openai import AsyncOpenAI
 
 from .config import BASE_URL, GROQ_API_KEY, MODEL_NAME
 
 client = AsyncOpenAI(
     api_key=GROQ_API_KEY,
     base_url=BASE_URL,
+    max_retries=3,
 )
 
 SYSTEM_PROMPT = """You are a patient, friendly SQL tutor for absolute beginners.
@@ -121,44 +120,6 @@ def _to_openai_messages(
     return out
 
 
-async def _stream_with_retry(
-    messages: list[dict],
-    system_prompt: str,
-    max_retries: int = 3,
-):
-    """Stream tokens from Groq with retry on transient errors."""
-    delay = 1.0
-    for attempt in range(max_retries + 1):
-        yielded_any = False
-        try:
-            stream = await client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    *messages,  # type: ignore
-                ],
-                temperature=0.5,
-                max_completion_tokens=800,
-                stream=True,
-            )  # type: ignore
-            async for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yielded_any = True
-                    yield chunk.choices[0].delta.content
-            return
-        except (RateLimitError, APIConnectionError, APIError) as e:
-            msg = str(e)
-            is_transient = any(
-                token in msg
-                for token in ("503", "UNAVAILABLE", "500", "INTERNAL", "429")
-            )
-            if not is_transient or yielded_any or attempt == max_retries:
-                raise
-            print(f"[llm] transient error (attempt {attempt + 1}): {e}")
-            await asyncio.sleep(delay)
-            delay *= 2
-
-
 async def stream_chat(
     messages: list[dict],
     lesson_title: str | None = None,
@@ -192,5 +153,17 @@ async def stream_chat(
 
     openai_messages = _to_openai_messages(messages, context_prefix)
 
-    async for chunk in _stream_with_retry(openai_messages, SYSTEM_PROMPT):
-        yield chunk
+    stream = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            *openai_messages, # type: ignore
+        ],
+        temperature=0.5,
+        max_completion_tokens=800,
+        stream=True,
+    ) # type: ignore
+
+    async for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
