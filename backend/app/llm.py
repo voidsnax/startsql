@@ -138,6 +138,7 @@ async def _stream_with_retry(
                     *messages,  # type: ignore
                 ],
                 temperature=0.5,
+                max_completion_tokens=800,
                 stream=True,
             )  # type: ignore
             async for chunk in stream:
