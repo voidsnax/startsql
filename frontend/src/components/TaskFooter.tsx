@@ -1,4 +1,4 @@
-import type { Lesson } from '../data/lessons';
+import type { Lesson } from "../data/lessons";
 
 interface Props {
   lesson: Lesson;
@@ -6,7 +6,7 @@ interface Props {
   isTaskComplete: (taskId: string) => boolean;
   canCheck: boolean;
   failCount: number;
-  feedback: { status: 'success' | 'fail'; message: string } | null;
+  feedback: { status: "success" | "fail"; message: string } | null;
   onCheckAnswer: () => void;
   onJumpToTask: (idx: number) => void;
   hasPrevLesson: boolean;
@@ -55,8 +55,8 @@ export function TaskFooter({
                 <button
                   key={t.id}
                   className={`task-dot${
-                    isTaskComplete(t.id) ? ' done' : ''
-                  }${i === currentTaskIndex ? ' current' : ''}`}
+                    isTaskComplete(t.id) ? " done" : ""
+                  }${i === currentTaskIndex ? " current" : ""}`}
                   onClick={() => onJumpToTask(i)}
                   title={`Task ${i + 1}`}
                   type="button"
@@ -71,7 +71,9 @@ export function TaskFooter({
               disabled={!canCheck || isTaskComplete(currentTask.id)}
               type="button"
             >
-              {isTaskComplete(currentTask.id) ? '✅ Completed' : '✓ Check Answer'}
+              {isTaskComplete(currentTask.id)
+                ? "✅ Completed"
+                : "✓ Check Answer"}
             </button>
           </div>
 
@@ -83,10 +85,16 @@ export function TaskFooter({
             </div>
           )}
 
-          {!feedback && failCount >= 3 && !isTaskComplete(currentTask.id) && (
+          {failCount >= 3 &&
+            currentTask.hint &&
+            !isTaskComplete(currentTask.id) && (
+              <div className="task-hint">{currentTask.hint}</div>
+            )}
+
+          {failCount >= 4 && !isTaskComplete(currentTask.id) && (
             <div className="task-nudge">
-              Tried a few times? Ask the assistant — describe what you tried
-              and what happened.
+              Tried a few times? Ask the assistant — describe what you tried and
+              what happened.
             </div>
           )}
         </div>
@@ -120,7 +128,7 @@ export function TaskFooter({
               disabled={!canGoToNext}
               title={
                 !canGoToNext
-                  ? 'Complete all tasks in this lesson to unlock'
+                  ? "Complete all tasks in this lesson to unlock"
                   : undefined
               }
               type="button"

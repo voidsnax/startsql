@@ -37,7 +37,7 @@ function formatSchema(execute: (sql: string) => QueryResponse): string {
 
   // Ask the live DB for all tables (includes user-created ones)
   const res = execute(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;",
   );
   const liveNames: string[] =
     res.error || res.results.length === 0
@@ -50,7 +50,7 @@ function formatSchema(execute: (sql: string) => QueryResponse): string {
     .filter((n) => !seen.has(n))
     .map((name) => {
       const colsRes = execute(
-        `SELECT name FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`
+        `SELECT name FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
       );
       const cols =
         colsRes.error || colsRes.results.length === 0
@@ -187,6 +187,7 @@ export default function App() {
         setTimeout(() => {
           setCurrentTaskIndex((i) => Math.min(i + 1, lesson.tasks.length - 1));
           setFeedback(null);
+          setFailCount(0);
         }, 1200);
       }
     } else {
@@ -196,11 +197,21 @@ export default function App() {
         message: result.reason ?? "Not quite — try again.",
       });
     }
+    
+    requestAnimationFrame(() => {
+      if (lessonRowRef.current) {
+        lessonRowRef.current.scrollTo({
+          top: lessonRowRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    });
   };
 
   const handleJumpToTask = (idx: number) => {
     setCurrentTaskIndex(idx);
     setFeedback(null);
+    setFailCount(0);
   };
 
   const handleShowLesson = () => {
