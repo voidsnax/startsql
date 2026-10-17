@@ -5,7 +5,8 @@ const lesson: Lesson = {
   number: 20,
   title: 'ALTER TABLE',
   subtitle: "Changing a table's structure",
-  defaultQuery: 'ALTER TABLE courses ADD COLUMN duration_weeks INTEGER;',
+  defaultQuery: `ALTER TABLE courses
+ADD COLUMN duration_weeks INTEGER;`,
   didYouKnow: `SQLite's ALTER TABLE is deliberately limited — no "change the type of a column", no "reorder columns", no "add NOT NULL without a default". PostgreSQL and MySQL support much more. The reason: SQLite prioritizes never corrupting your data, so anything that would require rewriting every row is left to a manual copy-and-swap.`,
   content: `\`ALTER TABLE\` changes an existing table's structure — without losing the data inside.
 

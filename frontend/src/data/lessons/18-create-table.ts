@@ -6,7 +6,12 @@ const lesson: Lesson = {
   title: 'CREATE TABLE',
   subtitle: 'Building a table from scratch',
   defaultQuery:
-    'CREATE TABLE books (\n  id INTEGER PRIMARY KEY,\n  title TEXT,\n  author TEXT,\n  year INTEGER\n);',
+    `CREATE TABLE reading_list (
+  id INTEGER PRIMARY KEY,
+  title TEXT,
+  author TEXT,
+  added_year INTEGER
+);`,
   showSchema: true,
   didYouKnow: `SQLite has only 5 storage types: INTEGER, TEXT, REAL (floats), BLOB (binary), and NULL. Other databases have many more (VARCHAR, DATE, BOOLEAN, etc.), but SQLite keeps it minimal — a design choice that makes it famously small and fast.`,
   content: `So far we've been *reading* and *changing* data. Now we build the table itself.

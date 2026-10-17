@@ -5,8 +5,10 @@ const lesson: Lesson = {
   number: 10,
   title: 'HAVING',
   subtitle: 'Filtering groups after grouping',
-  defaultQuery:
-    'SELECT city, COUNT(*) FROM students GROUP BY city HAVING COUNT(*) > 1;',
+  defaultQuery: `SELECT language, AVG(rating)
+FROM movies
+GROUP BY language
+HAVING AVG(rating) >= 7;`,
   didYouKnow: `The easiest way to remember: WHERE runs *before* grouping (it filters rows), HAVING runs *after* (it filters groups). If your condition uses an aggregate like COUNT or AVG, it must be in HAVING.`,
   content: `We've used \`WHERE\` to filter rows. But what if you want to filter **groups**?
 

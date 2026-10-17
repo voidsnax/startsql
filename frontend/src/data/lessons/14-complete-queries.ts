@@ -5,8 +5,12 @@ const lesson: Lesson = {
   number: 14,
   title: 'Putting Queries Together',
   subtitle: 'The full SELECT toolkit',
-  defaultQuery:
-    'SELECT courses.name, COUNT(*) \nFROM students \nJOIN courses \nON students.course_id = courses.id \nGROUP BY courses.id, courses.name;',
+  defaultQuery: `SELECT courses.name AS course_name,
+       AVG(students.age) AS average_age
+FROM students
+JOIN courses
+  ON students.course_id = courses.id
+GROUP BY courses.id, courses.name;`,
   didYouKnow: `SQL is written top-to-bottom but executed bottom-to-top-ish: FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. That's why you can't use a column alias in WHERE — the alias doesn't exist yet at that point in execution.`,
   content: `You now have all the pieces. This lesson is about combining them into real queries.
 

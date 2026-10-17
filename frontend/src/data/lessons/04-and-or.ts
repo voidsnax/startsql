@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 4,
   title: 'Combining Conditions',
   subtitle: 'AND, OR, NOT, IN, BETWEEN',
-  defaultQuery: "SELECT * FROM students WHERE age > 18 AND city = 'Kochi';",
+  defaultQuery: `SELECT *
+FROM students
+WHERE age >= 18 AND city != 'Kochi';`,
   didYouKnow: `Parentheses aren't just for looks — they change meaning. \`a OR b AND c\` evaluates as \`a OR (b AND c)\` because AND binds tighter than OR. When in doubt, always use parentheses.`,
   content: `One condition isn't always enough. SQL lets you combine conditions with **logical operators**.
 

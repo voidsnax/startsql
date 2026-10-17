@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 16,
   title: 'UPDATE',
   subtitle: 'Changing existing rows',
-  defaultQuery: "UPDATE students SET age = 21 WHERE id = 3;",
+  defaultQuery: `UPDATE students
+SET age = 21
+WHERE id = 3;`,
   didYouKnow: `Forgetting \`WHERE\` in an UPDATE changes *every row*. This is such a common bug that many production databases have "SQL_SAFE_UPDATES" mode — it refuses to run an UPDATE without WHERE. If your DB supports it, turn it on.`,
   content: `\`UPDATE\` changes values in existing rows.
 

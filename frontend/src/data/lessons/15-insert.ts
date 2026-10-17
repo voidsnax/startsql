@@ -5,8 +5,8 @@ const lesson: Lesson = {
   number: 15,
   title: 'INSERT',
   subtitle: 'Adding new rows',
-  defaultQuery:
-    "INSERT INTO students (id, name, age, city, phone, course_id) VALUES (9, 'Priya', 21, 'Kollam', '9876543216', 1);",
+  defaultQuery: `INSERT INTO students (id, name, age, city, phone, course_id)
+VALUES (13, 'Nila', 20, 'Alappuzha', '9876543219', 2);`,
   didYouKnow: `You can insert many rows at once: \`INSERT INTO students (...) VALUES (...), (...), (...);\`. It's much faster than separate statements — often 10–100× — because the database only has to open and commit once.`,
   content: `\`INSERT\` adds a new row to a table.
 

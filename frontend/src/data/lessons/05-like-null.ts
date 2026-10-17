@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 5,
   title: 'Text Search and NULL',
   subtitle: 'LIKE, %, _, IS NULL',
-  defaultQuery: "SELECT * FROM students WHERE name LIKE 'A%';",
+  defaultQuery: `SELECT *
+FROM students
+WHERE name LIKE '%a';`,
   didYouKnow: `NULL isn't zero, and it isn't an empty string. It means "unknown". That's why \`NULL = NULL\` is not true in SQL — even NULL doesn't equal itself. Use \`IS NULL\` / \`IS NOT NULL\` instead.`,
   content: `Two real-world essentials: finding text patterns, and handling "no value".
 

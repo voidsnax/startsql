@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 9,
   title: 'GROUP BY',
   subtitle: 'Summarizing per category',
-  defaultQuery: 'SELECT city, COUNT(*) FROM students GROUP BY city;',
+  defaultQuery: `SELECT genre, COUNT(*)
+FROM movies
+GROUP BY genre;`,
   didYouKnow: `Rule of thumb: every column in your \`SELECT\` must either be inside an aggregate function, or listed in \`GROUP BY\`. SQLite is forgiving about this, but most databases will throw an error if you break the rule.`,
   content: `Aggregates are powerful on their own, but the real magic happens when you group rows first.
 

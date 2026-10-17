@@ -5,8 +5,11 @@ const lesson: Lesson = {
   number: 13,
   title: 'LEFT JOIN',
   subtitle: 'Keeping every row from the left',
-  defaultQuery:
-    'SELECT students.name, courses.name FROM students LEFT JOIN courses ON students.course_id = courses.id;',
+  defaultQuery: `SELECT students.name AS student_name,
+       courses.teacher AS teacher
+FROM students
+LEFT JOIN courses
+  ON students.course_id = courses.id;`,
   didYouKnow: `In real analytics work, LEFT JOIN is often used more than INNER JOIN — because losing rows silently is usually worse than seeing NULLs. NULLs tell you "there's missing data here", which is information. A missing row tells you nothing.`,
   content: `INNER JOIN only returns matching rows. **Karthik** — the student with no course — disappeared from the results.
 

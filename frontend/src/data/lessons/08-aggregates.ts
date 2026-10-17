@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 8,
   title: 'Counting and Calculating',
   subtitle: 'COUNT, SUM, AVG, MIN, MAX',
-  defaultQuery: 'SELECT COUNT(*) FROM students;',
+  defaultQuery: `SELECT COUNT(*) AS total_students,
+       AVG(age) AS average_age
+FROM students;`,
   didYouKnow: `\`COUNT(*)\` counts every row. \`COUNT(column)\` counts only rows where that column is NOT NULL. Run \`SELECT COUNT(*), COUNT(phone) FROM students\` — the two numbers will differ, because some students have no phone.`,
   content: `So far we've been asking "show me rows". Now we ask **"tell me something about the data"**.
 

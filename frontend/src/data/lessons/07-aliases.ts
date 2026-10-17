@@ -5,7 +5,11 @@ const lesson: Lesson = {
   number: 7,
   title: 'Aliases and Expressions',
   subtitle: 'AS and simple math',
-  defaultQuery: 'SELECT name, age, age + 5 AS age_in_5_years FROM students;',
+  defaultQuery: `SELECT
+  name,
+  age,
+  age + 5 AS age_in_5_years
+FROM students;`,
   didYouKnow: `Aliases only rename the output column — the underlying table is untouched. You can even alias without the \`AS\` keyword (\`name student_name\`), but \`AS\` makes the intent obvious to anyone reading your query.`,
   content: `You can **rename** a column in the output, and **calculate** new values on the fly.
 

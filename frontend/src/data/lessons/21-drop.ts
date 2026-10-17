@@ -5,7 +5,7 @@ const lesson: Lesson = {
   number: 21,
   title: 'DROP TABLE',
   subtitle: 'Deleting an entire table',
-  defaultQuery: 'DROP TABLE movies;',
+  defaultQuery: `DROP TABLE IF EXISTS scratch;`,
   didYouKnow: `DROP TABLE is not reversible on most databases — the data is gone instantly. Some systems keep a "recycle bin" for a short window (SQL Server, Oracle), but SQLite doesn't. In production, dropping a table without a backup is the stuff of horror stories. Always think twice.`,
   content: `\`DROP TABLE\` deletes the **table itself** — its structure, all its rows, and any indexes on it.
 

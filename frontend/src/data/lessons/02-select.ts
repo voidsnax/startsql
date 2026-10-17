@@ -5,7 +5,8 @@ const lesson: Lesson = {
   number: 2,
   title: 'SELECT — Reading Data',
   subtitle: 'Your first real query',
-  defaultQuery: 'SELECT * FROM students;',
+  defaultQuery: `SELECT id, name, age
+FROM students;`,
   didYouKnow: `\`SELECT *\` is convenient, but it's slow on huge tables — the database has to fetch every column. Once you're comfortable, prefer naming the columns you actually need. It also documents what your query depends on.`,
   content: `The \`SELECT\` statement reads data from a table.
 

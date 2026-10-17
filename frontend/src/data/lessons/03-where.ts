@@ -5,7 +5,7 @@ const lesson: Lesson = {
   number: 3,
   title: 'Filtering with WHERE',
   subtitle: 'Pick only the rows you want',
-  defaultQuery: 'SELECT * FROM students WHERE age > 18;',
+  defaultQuery: 'SELECT * FROM students\nWHERE age > 18;',
   didYouKnow: `The order of rows you get back from a query isn't guaranteed. If you need a specific order, you must use \`ORDER BY\` — even if the results "happen" to look sorted today.`,
   content: `\`WHERE\` filters rows based on a condition. Only rows that satisfy the condition are returned.
 

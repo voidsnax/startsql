@@ -5,7 +5,8 @@ const lesson: Lesson = {
   number: 1,
   title: 'What Are Databases and SQL?',
   subtitle: 'Before we write any queries',
-  defaultQuery: 'SELECT * FROM students;',
+  defaultQuery: `SELECT *
+FROM students;`,
   tasks: [],
   showSchema: true,
   didYouKnow: `SQL was invented at IBM in the 1970s. The name is pronounced either "sequel" or "S-Q-L" — both are considered correct. PostgreSQL, MySQL, and SQLite are different flavors of the same core language.`,

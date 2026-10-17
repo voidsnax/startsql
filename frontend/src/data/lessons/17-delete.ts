@@ -5,7 +5,8 @@ const lesson: Lesson = {
   number: 17,
   title: 'DELETE',
   subtitle: 'Removing rows',
-  defaultQuery: 'DELETE FROM students WHERE id = 3;',
+  defaultQuery: `DELETE FROM students
+WHERE id = 3;`,
   didYouKnow: `A DELETE can be rolled back if it runs inside a transaction that hasn't been committed yet (\`BEGIN; DELETE ...; ROLLBACK;\`). Outside a transaction, most databases treat DELETE as permanent. Some systems keep deleted rows in an "undo log" for a few minutes — but never rely on that.`,
   content: `\`DELETE\` removes rows from a table.
 

@@ -5,8 +5,11 @@ const lesson: Lesson = {
   number: 12,
   title: 'INNER JOIN',
   subtitle: 'Combining rows from two tables',
-  defaultQuery:
-    'SELECT students.name, courses.name FROM students JOIN courses ON students.course_id = courses.id;',
+  defaultQuery: `SELECT students.name AS student_name,
+       courses.teacher AS teacher
+FROM students
+INNER JOIN courses
+  ON students.course_id = courses.id;`,
   didYouKnow: `Every JOIN needs an ON condition. Without one, you'd get a "cross join" — every row from the left paired with every row from the right. With 1,000 students and 4 courses, that's 4,000 rows. Almost never what you want.`,
   content: `A **JOIN** combines rows from two tables based on a matching condition.
 

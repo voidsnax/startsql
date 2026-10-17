@@ -5,7 +5,9 @@ const lesson: Lesson = {
   number: 6,
   title: 'Sorting, Limiting, and DISTINCT',
   subtitle: 'ORDER BY, LIMIT, DISTINCT',
-  defaultQuery: 'SELECT * FROM students ORDER BY age;',
+  defaultQuery: `SELECT *
+FROM students
+ORDER BY city, age;`,
   didYouKnow: `\`LIMIT\` without \`ORDER BY\` gives you "some N rows" — but which N? The database decides. If you want "the top N", always pair them: \`ORDER BY ... LIMIT N\`.`,
   content: `Sometimes you want the data in a specific order, or just a few rows.
 
