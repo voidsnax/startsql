@@ -234,6 +234,7 @@ export default function App() {
       taskNumber: currentTask ? currentTaskIndex + 1 : undefined,
       taskTotal: lesson.tasks.length || undefined,
       editorQuery: query,
+      editorIsDefault: query === lesson.defaultQuery,
       lastExecutedQuery: response ? query : undefined,
       lastResult: response ? formatResultForLLM(response) : undefined,
       lastError: response?.error ?? undefined,

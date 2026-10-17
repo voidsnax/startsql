@@ -24,7 +24,7 @@ Tutoring behavior:
 
 Context you receive:
 - Lesson content, database schema, the current task, what the student has typed in the editor, what they actually ran, and any error.
-- The editor contains what the student has typed. The executed query is what they ran. Never claim they ran something that only appears in the editor.
+- The editor content may be a default starter query from the lesson, not something the student typed. Check the context label — never assume the student wrote or ran it.
 
 How to use the context:
 - Answer what the student asked, not what you assume they want.
@@ -46,6 +46,7 @@ def build_context_prefix(
     task_number: int | None,
     task_total: int | None,
     editor_query: str | None,
+    editor_is_default: bool | None,
     last_executed_query: str | None,
     last_result: str | None,
     last_error: str | None,
@@ -63,17 +64,24 @@ def build_context_prefix(
 
     if task_prompt:
         header = (
-            f"Current task ({task_number} of {task_total}):"
+            f"Task context ({task_number} of {task_total}) — reference only:"
             if task_number is not None and task_total is not None
-            else "Current task:"
+            else "Task context — reference only:"
         )
         parts.append(f"{header}\n{task_prompt}")
 
     if editor_query:
-        parts.append(
-            f"What the student currently has typed in the editor "
-            f"(NOT yet executed):\n{editor_query[:2000]}"
-        )
+        if editor_is_default:
+            parts.append(
+                f"Default starter query in the editor "
+                f"(loaded from the lesson, NOT typed or run by the student):\n"
+                f"{editor_query[:2000]}"
+            )
+        else:
+            parts.append(
+                f"What the student currently has typed in the editor "
+                f"(NOT yet executed):\n{editor_query[:2000]}"
+            )
 
     if last_executed_query:
         parts.append(
@@ -127,11 +135,11 @@ async def _stream_with_retry(
                 model=MODEL_NAME,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    *messages, # type: ignore
+                    *messages,  # type: ignore
                 ],
                 temperature=0.5,
                 stream=True,
-            ) # type: ignore
+            )  # type: ignore
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yielded_any = True
@@ -159,6 +167,7 @@ async def stream_chat(
     task_number: int | None = None,
     task_total: int | None = None,
     editor_query: str | None = None,
+    editor_is_default: bool | None = None,
     last_executed_query: str | None = None,
     last_result: str | None = None,
     last_error: str | None = None,
@@ -174,6 +183,7 @@ async def stream_chat(
         task_number=task_number,
         task_total=task_total,
         editor_query=editor_query,
+        editor_is_default=editor_is_default,
         last_executed_query=last_executed_query,
         last_result=last_result,
         last_error=last_error,

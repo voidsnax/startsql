@@ -18,6 +18,7 @@ class ChatRequest(BaseModel):
     task_number: int | None = None
     task_total: int | None = None
     editor_query: str | None = None
+    editor_is_default: bool | None = None
     last_executed_query: str | None = None
     last_result: str | None = None
     last_error: str | None = None

@@ -14,6 +14,7 @@ export interface ChatContext {
   taskNumber?: number;
   taskTotal?: number;
   editorQuery?: string;
+  editorIsDefault?: boolean;
   lastExecutedQuery?: string;
   lastResult?: string;
   lastError?: string;
@@ -55,6 +56,7 @@ export function useChat() {
             task_number: context.taskNumber,
             task_total: context.taskTotal,
             editor_query: context.editorQuery,
+            editor_is_default: context.editorIsDefault,
             last_executed_query: context.lastExecutedQuery,
             last_result: context.lastResult,
             last_error: context.lastError,
