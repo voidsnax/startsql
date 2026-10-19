@@ -8,4 +8,5 @@ dependencies = [
     "fastapi[standard]>=0.142.2",
     "openai>=3.26.1",
     "python-dotenv>=1.2.4",
+    "slowapi>=0.1.10",
 ]

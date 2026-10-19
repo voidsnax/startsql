@@ -63,7 +63,21 @@ export function useChat() {
           }),
           signal: controller.signal,
         });
-
+        
+        if (!res.ok) {
+          let message = 'Something went wrong. Please try again.';
+          if (res.status === 429) {
+            message = "You're sending messages too quickly. Wait a moment and try again.";
+          }
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { role: 'assistant', content: message };
+            return copy;
+          });
+          setStreaming(false);
+          abortRef.current = null;
+          return;
+        }
         if (!res.body) throw new Error('No response body');
 
         const reader = res.body.getReader();

@@ -1,8 +1,9 @@
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from ..limiter import limiter
 from ..llm import stream_chat
 from ..schemas import ChatRequest
 
@@ -21,27 +22,28 @@ def _friendly_error(e: Exception) -> str:
 
 
 @router.post("/chat")
-async def chat(request: ChatRequest):
-    if not request.messages:
+@limiter.limit("10/minute")
+async def chat(request: Request, chat_request: ChatRequest):
+    if not chat_request.messages:
         raise HTTPException(status_code=400, detail="No messages provided")
 
-    messages = [m.model_dump() for m in request.messages]
+    messages = [m.model_dump() for m in chat_request.messages]
 
     async def event_stream():
         try:
             async for chunk in stream_chat(
                 messages=messages,
-                lesson_title=request.lesson_title,
-                lesson_content=request.lesson_content,
-                schema=request.schema,
-                task_prompt=request.task_prompt,
-                task_number=request.task_number,
-                task_total=request.task_total,
-                editor_query=request.editor_query,
-                editor_is_default=request.editor_is_default,
-                last_executed_query=request.last_executed_query,
-                last_result=request.last_result,
-                last_error=request.last_error,
+                lesson_title=chat_request.lesson_title,
+                lesson_content=chat_request.lesson_content,
+                schema=chat_request.schema,
+                task_prompt=chat_request.task_prompt,
+                task_number=chat_request.task_number,
+                task_total=chat_request.task_total,
+                editor_query=chat_request.editor_query,
+                editor_is_default=chat_request.editor_is_default,
+                last_executed_query=chat_request.last_executed_query,
+                last_result=chat_request.last_result,
+                last_error=chat_request.last_error,
             ):
                 payload = json.dumps({"type": "token", "content": chunk})
                 yield f"data: {payload}\n\n"
