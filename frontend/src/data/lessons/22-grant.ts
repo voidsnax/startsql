@@ -63,7 +63,7 @@ SQLite doesn't have users — it's a **file-based** database. Access control is 
 
 **When you graduate to PostgreSQL or MySQL, this lesson will pay off.** The mental model — different roles with different capabilities — is the foundation of secure database design.
 
-**There is no task for this lesson.** When you're ready, move on.`,
+**There is no task for this lesson.** Mark the lesson complete to finish the course 🎉`,
 };
 
 export default lesson;
