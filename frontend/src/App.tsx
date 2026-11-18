@@ -9,7 +9,7 @@ import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
 import { DATABASE } from "./data/schemas";
 import { useSqlEngine } from "./hooks/useSqlEngine";
-import type { QueryResponse } from "./hooks/useSqlEngine";
+import type { QueryResponse, IsolatedRun } from "./hooks/useSqlEngine";
 import { useProgress } from "./hooks/useProgress";
 import { validateTask, validateMutation } from "./hooks/useTaskValidator";
 import type { ChatContext } from "./hooks/useChat";
@@ -46,6 +46,14 @@ function formatSchema(execute: (sql: string) => QueryResponse): string {
       return `${name}(${cols.join(", ")})`;
     })
     .join(", ");
+}
+
+function asResponse(run: IsolatedRun): QueryResponse {
+  return {
+    results: run.result ? [run.result] : [],
+    error: run.error,
+    executionTimeMs: 0,
+  };
 }
 
 export default function App() {
@@ -159,10 +167,17 @@ export default function App() {
         runIsolated,
       );
     } else {
-      // Query task — compare result sets
-      const solutionRes = execute(currentTask.solutionQuery);
+      // Query task — run BOTH queries on a fresh copy of the database.
+      // "SELECT 1;" is a harmless no-op; the last argument is the query
+      // whose result we want back.
+      const studentRes = asResponse(
+        runIsolated(DATABASE.seedSql, "SELECT 1;", query),
+      );
+      const solutionRes = asResponse(
+        runIsolated(DATABASE.seedSql, "SELECT 1;", currentTask.solutionQuery),
+      );
       result = validateTask(
-        response,
+        studentRes,
         solutionRes,
         currentTask.orderMatters ?? false,
       );
