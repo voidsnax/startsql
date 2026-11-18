@@ -147,9 +147,9 @@ interface Props {
   onChange: (value: string) => void;
   onRun: () => void;
   onReset: () => void;
+  onShowSchema: () => void;
   disabled: boolean;
   schema: EditorTable[];
-  tableName?: string;
   lessonCollapsed: boolean;
   onToggleLesson: () => void;
   fullscreen: boolean;
@@ -163,9 +163,9 @@ export function SqlEditor({
   onChange,
   onRun,
   onReset,
+  onShowSchema,
   disabled,
   schema,
-  tableName,
   lessonCollapsed,
   onToggleLesson,
   fullscreen,
@@ -175,13 +175,17 @@ export function SqlEditor({
 }: Props) {
   const onRunRef = useRef(onRun);
   const disabledRef = useRef(disabled);
-  const dataRef = useRef<CompletionData>(EMPTY_DATA);
 
   useEffect(() => {
     onRunRef.current = onRun;
     disabledRef.current = disabled;
+  }, [onRun, disabled]);
+
+  const dataRef = useRef<CompletionData>(EMPTY_DATA);
+
+  useEffect(() => {
     dataRef.current = buildCompletions(schema);
-  }, [onRun, disabled, schema]);
+  }, [schema]);
 
   const extensions = useMemo(
     () => [
@@ -219,10 +223,18 @@ export function SqlEditor({
 
         <span className="editor-label">SQL Editor</span>
 
-        {tableName && (
-          <span className="editor-table-hint">
-            Tables: <strong>{tableName}</strong>
-          </span>
+        {schema.length > 0 && (
+          <button
+            type="button"
+            className="editor-table-hint"
+            onClick={onShowSchema}
+            title="List every table and column in the results panel"
+          >
+            <span className="editor-table-hint-icon" aria-hidden="true">
+              ◫
+            </span>
+            {schema.length} {schema.length === 1 ? "table" : "tables"}
+          </button>
         )}
 
         <div className="editor-actions">
@@ -249,11 +261,30 @@ export function SqlEditor({
             </button>
           )}
 
-          <button onClick={onReset} className="btn-secondary">
-            Reset DB
+          <button
+            onClick={onReset}
+            className="btn-secondary"
+            title="Reset database"
+            type="button"
+          >
+            <span className="btn-icon" aria-hidden="true">
+              ↺
+            </span>
+            <span className="btn-label">Reset DB</span>
           </button>
-          <button onClick={onRun} disabled={disabled} className="btn-primary">
-            ▶ Run <kbd>Ctrl+Enter</kbd>
+
+          <button
+            onClick={onRun}
+            disabled={disabled}
+            className="btn-primary"
+            title="Run query"
+            type="button"
+          >
+            <span className="btn-icon" aria-hidden="true">
+              ▶
+            </span>
+            <span className="btn-label">Run</span>
+            <kbd>Ctrl+Enter</kbd>
           </button>
         </div>
       </div>

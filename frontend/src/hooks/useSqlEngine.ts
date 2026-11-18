@@ -27,6 +27,7 @@ export interface EditorTable {
 export function useSqlEngine() {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [schemaVersion, setSchemaVersion] = useState(0);
   const sqlModuleRef = useRef<SqlJsStatic | null>(null);
   const dbRef = useRef<Database | null>(null);
 
@@ -64,6 +65,7 @@ export function useSqlEngine() {
       }
     }
     dbRef.current = fresh;
+    setSchemaVersion((v) => v + 1);
   }, []);
 
   const execute = useCallback((sql: string): QueryResponse => {
@@ -118,5 +120,5 @@ export function useSqlEngine() {
     []
   );
 
-  return { ready, execute, reset, runIsolated, loadError };
+  return { ready, execute, reset, runIsolated, loadError, schemaVersion };
 }

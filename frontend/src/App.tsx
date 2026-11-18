@@ -62,6 +62,11 @@ function asResponse(run: IsolatedRun): QueryResponse {
   };
 }
 
+const SCHEMA_QUERY = `SELECT name AS table_name
+FROM sqlite_master
+WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+ORDER BY name;`;
+
 export default function App() {
   const [lesson, setLesson] = useState<Lesson>(lessons[0]);
   const [query, setQuery] = useState(lessons[0].defaultQuery);
@@ -92,7 +97,8 @@ export default function App() {
     message: string;
   } | null>(null);
 
-  const { ready, execute, reset, runIsolated, loadError } = useSqlEngine();
+  const { ready, execute, reset, runIsolated, loadError, schemaVersion } =
+    useSqlEngine();
   const {
     markTaskComplete,
     markLessonComplete,
@@ -158,6 +164,11 @@ export default function App() {
     setLastExecuted(null);
     setFeedback(null);
     setFailCount(0);
+  };
+
+  const handleShowSchema = () => {
+    setResponse(execute(SCHEMA_QUERY));
+    setFeedback(null);
   };
 
   const handleCheckAnswer = () => {
@@ -251,7 +262,7 @@ export default function App() {
 
   const liveSchema = useMemo(
     () => (ready ? readSchema(execute) : []),
-    [ready, lesson, response, execute],
+    [ready, lesson, response, execute, schemaVersion],
   );
 
   const schemaText = useMemo(
@@ -373,7 +384,7 @@ export default function App() {
                   onReset={handleReset}
                   disabled={!ready}
                   schema={liveSchema}
-                  tableName={liveSchema.map((t) => t.name).join(", ")}
+                  onShowSchema={handleShowSchema}
                   lessonCollapsed={lessonCollapsed}
                   onToggleLesson={() => {
                     if (lessonCollapsed) handleShowLesson();
