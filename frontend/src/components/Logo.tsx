@@ -14,7 +14,7 @@ export function Logo({ size = 26 }: Props) {
     >
       <g
         stroke="#ffffff"
-        strokeWidth="4.5"
+        strokeWidth="3.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
