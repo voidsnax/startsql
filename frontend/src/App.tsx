@@ -100,8 +100,10 @@ export default function App() {
   const currentTask =
     lesson.tasks.length > 0 ? lesson.tasks[currentTaskIndex] : null;
   const lessonRowRef = useRef<HTMLDivElement>(null);
+  const advanceTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    window.clearTimeout(advanceTimer.current);
     if (!ready) return;
     reset(DATABASE.seedSql);
     setQuery(lesson.defaultQuery);
@@ -188,7 +190,8 @@ export default function App() {
       setFeedback({ status: "success", message: "✅ Correct!" });
       setFailCount(0);
       if (currentTaskIndex < lesson.tasks.length - 1) {
-        setTimeout(() => {
+        window.clearTimeout(advanceTimer.current);
+        advanceTimer.current = window.setTimeout(() => {
           setCurrentTaskIndex((i) => Math.min(i + 1, lesson.tasks.length - 1));
           setFeedback(null);
           setFailCount(0);
@@ -213,6 +216,7 @@ export default function App() {
   };
 
   const handleJumpToTask = (idx: number) => {
+    window.clearTimeout(advanceTimer.current);
     setCurrentTaskIndex(idx);
     setFeedback(null);
     setFailCount(0);
