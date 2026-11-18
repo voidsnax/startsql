@@ -29,26 +29,13 @@ function formatResultForLLM(response: QueryResponse): string | undefined {
 }
 
 function formatSchema(execute: (sql: string) => QueryResponse): string {
-  // Start with the seed schema (has column notes)
-  const knownTables = DATABASE.tables.map((t) => ({
-    name: t.name,
-    columns: t.columns.map((c) => c.name).join(", "),
-  }));
-
-  // Ask the live DB for all tables (includes user-created ones)
   const res = execute(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;",
   );
-  const liveNames: string[] =
-    res.error || res.results.length === 0
-      ? []
-      : res.results[0].values.map((row) => String(row[0]));
-
-  // Merge: use the seed columns when known, otherwise fetch the live columns
-  const seen = new Set(knownTables.map((t) => t.name));
-  const extra = liveNames
-    .filter((n) => !seen.has(n))
-    .map((name) => {
+  if (res.error || res.results.length === 0) return "";
+  return res.results[0].values
+    .map((row) => {
+      const name = String(row[0]);
       const colsRes = execute(
         `SELECT name FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
       );
@@ -56,11 +43,9 @@ function formatSchema(execute: (sql: string) => QueryResponse): string {
         colsRes.error || colsRes.results.length === 0
           ? []
           : colsRes.results[0].values.map((r) => String(r[0]));
-      return { name, columns: cols.join(", ") };
-    });
-
-  const all = [...knownTables, ...extra];
-  return all.map((t) => `${t.name}(${t.columns})`).join(", ");
+      return `${name}(${cols.join(", ")})`;
+    })
+    .join(", ");
 }
 
 export default function App() {
@@ -239,12 +224,17 @@ export default function App() {
     setLesson(lessons[lessonIndex + 1]);
   };
 
+  const schemaText = useMemo(
+    () => (ready ? formatSchema(execute) : ""),
+    [ready, lesson, response, execute],
+  );
+
   const chatContext: ChatContext = useMemo(
     () => ({
       lessonId: lesson.id,
       lessonTitle: `${lesson.number}. ${lesson.title}`,
       lessonContent: lesson.content,
-      schema: formatSchema(execute),
+      schema: schemaText,
       taskPrompt: currentTask?.prompt,
       taskNumber: currentTask ? currentTaskIndex + 1 : undefined,
       taskTotal: lesson.tasks.length || undefined,
@@ -254,7 +244,15 @@ export default function App() {
       lastResult: response ? formatResultForLLM(response) : undefined,
       lastError: response?.error ?? undefined,
     }),
-    [lesson, query, response, currentTask, currentTaskIndex, execute, lastExecuted],
+    [
+      lesson,
+      query,
+      response,
+      currentTask,
+      currentTaskIndex,
+      schemaText,
+      lastExecuted,
+    ],
   );
 
   if (loadError) {
