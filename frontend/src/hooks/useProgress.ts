@@ -13,7 +13,22 @@ type ProgressState = Record<string, LessonProgress>;
 function load(): ProgressState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ProgressState) : {};
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+
+    const clean: ProgressState = {};
+    for (const [lessonId, entry] of Object.entries(parsed)) {
+      if (!entry || typeof entry !== "object") continue;
+      const { completedTasks, markedComplete } = entry as Partial<LessonProgress>;
+      clean[lessonId] = {
+        completedTasks: Array.isArray(completedTasks)
+          ? completedTasks.filter((id) => typeof id === "string")
+          : [],
+        markedComplete: markedComplete === true,
+      };
+    }
+    return clean;
   } catch {
     return {};
   }
