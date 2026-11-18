@@ -197,7 +197,7 @@ export default function App() {
         message: result.reason ?? "Not quite — try again.",
       });
     }
-    
+
     requestAnimationFrame(() => {
       if (lessonRowRef.current) {
         lessonRowRef.current.scrollTo({
@@ -375,13 +375,12 @@ export default function App() {
           )}
         </main>
 
-        {!editorFullscreen && (
           <ChatPanel
             context={chatContext}
             collapsed={chatCollapsed}
+            hidden={editorFullscreen}
             onToggle={() => setChatCollapsed((v) => !v)}
           />
-        )}
       </div>
     </div>
   );

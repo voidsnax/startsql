@@ -7,10 +7,11 @@ import type { ChatContext } from "../hooks/useChat";
 interface Props {
   context: ChatContext;
   collapsed: boolean;
+  hidden?: boolean;
   onToggle: () => void;
 }
 
-export function ChatPanel({ context, collapsed, onToggle }: Props) {
+export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
   const { messages, streaming, send, clear } = useChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,8 @@ export function ChatPanel({ context, collapsed, onToggle }: Props) {
     send(text, context);
   };
 
+  if (hidden) return null;
+  
   if (collapsed) {
     return (
       <button
