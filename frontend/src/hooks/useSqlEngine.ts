@@ -19,6 +19,11 @@ export interface IsolatedRun {
   error: string | null;
 }
 
+export interface EditorTable {
+  name: string;
+  columns: { name: string; type: string }[];
+}
+
 export function useSqlEngine() {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);

@@ -9,10 +9,15 @@ import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
 import { DATABASE } from "./data/schemas";
 import { useSqlEngine } from "./hooks/useSqlEngine";
-import type { QueryResponse, IsolatedRun } from "./hooks/useSqlEngine";
+import type {
+  QueryResponse,
+  IsolatedRun,
+  EditorTable,
+} from "./hooks/useSqlEngine";
 import { useProgress } from "./hooks/useProgress";
 import { validateTask, validateMutation } from "./hooks/useTaskValidator";
 import type { ChatContext } from "./hooks/useChat";
+
 import "./App.css";
 
 function formatResultForLLM(response: QueryResponse): string | undefined {
@@ -28,24 +33,25 @@ function formatResultForLLM(response: QueryResponse): string | undefined {
   return `Columns: ${header}\nRows (${res.values.length} total):\n${rows.join("\n")}${suffix}`;
 }
 
-function formatSchema(execute: (sql: string) => QueryResponse): string {
+function readSchema(execute: (sql: string) => QueryResponse): EditorTable[] {
   const res = execute(
     "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;",
   );
-  if (res.error || res.results.length === 0) return "";
-  return res.results[0].values
-    .map((row) => {
-      const name = String(row[0]);
-      const colsRes = execute(
-        `SELECT name FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
-      );
-      const cols =
-        colsRes.error || colsRes.results.length === 0
-          ? []
-          : colsRes.results[0].values.map((r) => String(r[0]));
-      return `${name}(${cols.join(", ")})`;
-    })
-    .join(", ");
+  if (res.error || res.results.length === 0) return [];
+  return res.results[0].values.map((row) => {
+    const name = String(row[0]);
+    const cols = execute(
+      `SELECT name, type FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
+    );
+    const columns =
+      cols.error || cols.results.length === 0
+        ? []
+        : cols.results[0].values.map((c) => ({
+            name: String(c[0]),
+            type: String(c[1] ?? ""),
+          }));
+    return { name, columns };
+  });
 }
 
 function asResponse(run: IsolatedRun): QueryResponse {
@@ -243,9 +249,17 @@ export default function App() {
     setLesson(lessons[lessonIndex + 1]);
   };
 
-  const schemaText = useMemo(
-    () => (ready ? formatSchema(execute) : ""),
+  const liveSchema = useMemo(
+    () => (ready ? readSchema(execute) : []),
     [ready, lesson, response, execute],
+  );
+
+  const schemaText = useMemo(
+    () =>
+      liveSchema
+        .map((t) => `${t.name}(${t.columns.map((c) => c.name).join(", ")})`)
+        .join(", "),
+    [liveSchema],
   );
 
   const chatContext: ChatContext = useMemo(
@@ -358,7 +372,8 @@ export default function App() {
                   onRun={handleRun}
                   onReset={handleReset}
                   disabled={!ready}
-                  tableName={DATABASE.tables.map((t) => t.name).join(", ")}
+                  schema={liveSchema}
+                  tableName={liveSchema.map((t) => t.name).join(", ")}
                   lessonCollapsed={lessonCollapsed}
                   onToggleLesson={() => {
                     if (lessonCollapsed) handleShowLesson();
