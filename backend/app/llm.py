@@ -6,6 +6,7 @@ client = AsyncOpenAI(
     api_key=GROQ_API_KEY,
     base_url=BASE_URL,
     max_retries=3,
+    timeout=60.0
 )
 
 SYSTEM_PROMPT = """You are a patient, friendly SQL tutor for absolute beginners.
@@ -160,7 +161,7 @@ async def stream_chat(
             *openai_messages, # type: ignore
         ],
         temperature=0.5,
-        max_completion_tokens=800,
+        max_completion_tokens=600,
         stream=True,
     ) # type: ignore
 
