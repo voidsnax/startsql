@@ -8,6 +8,7 @@
 
 /* ───────────── Header ───────────── */
 .app-header {
+  position: relative;
   flex-shrink: 0;
   height: var(--header-h);
   display: flex;
@@ -15,9 +16,30 @@
   gap: var(--sp-5);
   padding: 0 var(--sp-5);
   background:
-    linear-gradient(180deg, var(--brand-wash-2), transparent 70%),
+    linear-gradient(
+      100deg,
+      rgba(99, 102, 241, 0.14),
+      rgba(124, 92, 240, 0.07) 42%,
+      rgba(56, 189, 248, 0.06) 78%,
+      transparent
+    ),
     var(--bg-panel);
   border-bottom: 1px solid var(--line);
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--brand),
+    #7c5cf0 35%,
+    var(--info) 70%,
+    transparent
+  );
+  opacity: 0.5;
 }
 
 .app-logo {
@@ -197,6 +219,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--bg-read);
   border-bottom: 1px solid var(--line);
 }
 
@@ -843,7 +866,9 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--bg-panel);
+  background:
+    linear-gradient(180deg, rgba(99, 102, 241, 0.05), transparent 220px),
+    var(--bg-panel);
   border-left: 1px solid var(--line);
 }
 

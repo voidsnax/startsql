@@ -1,20 +1,21 @@
 :root {
-  /* ── Surfaces: app → panel → raised → hover ── */
-  --bg: #0f1117;
-  --bg-panel: #1a1d27;
-  --bg-raised: #232733;
-  --bg-hover: #2c3140;
-  --bg-code: #0a0c12;
+  /* ── Surfaces: floor → reading → chrome → raised → hover ── */
+  --bg: #0d0f14;
+  --bg-read: #161922;
+  --bg-panel: #1a1e28;
+  --bg-raised: #242936;
+  --bg-hover: #2e3444;
+  --bg-code: #0a0c11;
 
   /* ── Lines ── */
   --line: #2d3142;
   --line-soft: #232733;
-  --line-strong: #3a4055;
+  --line-strong: #3d4459;
 
   /* ── Text ── */
-  --fg: #e6e8ee;
+  --fg: #dee2ec;
   --fg-muted: #9ca3af;
-  --fg-dim: #6b7280;
+  --fg-dim: #767e8d;
   --fg-on-brand: #ffffff;
 
   /* ── Brand ── */
@@ -109,8 +110,8 @@ body {
   line-height: 1.5;
   color: var(--fg);
   background:
-    radial-gradient(1100px 560px at 12% -12%, rgba(99, 102, 241, 0.1), transparent 62%),
-    radial-gradient(880px 460px at 102% -4%, rgba(56, 189, 248, 0.055), transparent 58%),
+    radial-gradient(1100px 560px at 12% -14%, rgba(99, 102, 241, 0.07), transparent 62%),
+    radial-gradient(880px 460px at 102% -6%, rgba(56, 189, 248, 0.04), transparent 58%),
     var(--bg);
   height: 100dvh;
   overflow: hidden;
