@@ -47,6 +47,8 @@ export function useSqlEngine() {
     })();
     return () => {
       cancelled = true;
+      dbRef.current?.close();
+      dbRef.current = null;
     };
   }, []);
 

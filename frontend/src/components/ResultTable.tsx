@@ -1,4 +1,4 @@
-import type { QueryResponse } from '../hooks/useSqlEngine';
+import type { QueryResponse } from "../hooks/useSqlEngine";
 
 interface Props {
   response: QueryResponse;
@@ -6,7 +6,7 @@ interface Props {
 }
 
 function formatCell(cell: unknown): string {
-  if (cell === null) return 'NULL';
+  if (cell === null) return "NULL";
   if (cell instanceof Uint8Array) return `[BLOB ${cell.length} bytes]`;
   return String(cell);
 }
@@ -19,12 +19,12 @@ export function ResultTable({ response, onHide }: Props) {
 
         <span className="result-meta">
           {response.error
-            ? 'Error'
+            ? "Error"
             : response.results.length === 0
-            ? 'No rows returned'
-            : `${response.results[0].values.length} row${
-                response.results[0].values.length === 1 ? '' : 's'
-              } · ${response.executionTimeMs.toFixed(1)} ms`}
+              ? "No rows returned"
+              : `${response.results[0].values.length} row${
+                  response.results[0].values.length === 1 ? "" : "s"
+                } · ${response.executionTimeMs.toFixed(1)} ms`}
         </span>
 
         {onHide && (
@@ -45,8 +45,8 @@ export function ResultTable({ response, onHide }: Props) {
         </div>
       ) : response.results.length === 0 ? (
         <div className="result-success">
-          ✅ Query executed successfully in {response.executionTimeMs.toFixed(1)} ms
-          (no rows returned).
+          ✅ Query executed successfully in{" "}
+          {response.executionTimeMs.toFixed(1)} ms.
         </div>
       ) : (
         <div className="result-scroll">
@@ -54,8 +54,8 @@ export function ResultTable({ response, onHide }: Props) {
             <table key={i}>
               <thead>
                 <tr>
-                  {res.columns.map((c) => (
-                    <th key={c}>{c}</th>
+                  {res.columns.map((c, ci) => (
+                    <th key={ci}>{c}</th>
                   ))}
                 </tr>
               </thead>
