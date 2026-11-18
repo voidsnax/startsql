@@ -6,8 +6,9 @@ An interactive SQL learning platform for beginners, with an AI tutor.
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.14+
 - Node.js 20+
+- [pnpm](https://pnpm.io/)
 - A free Groq API key from https://console.groq.com/keys
 
 ## Setup
@@ -21,6 +22,7 @@ cd backend
 #### Install dependencies using either [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
 With uv:
+
 ```bash
 uv sync
 ```
@@ -43,7 +45,7 @@ GROQ_API_KEY=your_key_here
 
 ```bash
 cd frontend
-npm install
+pnpm install
 ```
 
 ### Running
@@ -60,9 +62,10 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 #### Terminal 2 — frontend:
+
 ```bash
 cd frontend
-npm run dev
+pnpm dev
 ```
 
 #### Open http://localhost:5173
