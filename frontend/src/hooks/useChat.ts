@@ -35,7 +35,7 @@ export function useChat() {
       const userMessage: ChatMessage = { role: 'user', content: text };
       const nextMessages = [...messages, userMessage];
       setMessages([...nextMessages, { role: 'assistant', content: '' }]);
-      const MAX_HISTORY = 8;
+      const MAX_HISTORY = 6;
       const trimmedForApi = nextMessages.slice(-MAX_HISTORY);
       setStreaming(true);
 
