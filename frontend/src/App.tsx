@@ -67,6 +67,7 @@ export default function App() {
   const [lesson, setLesson] = useState<Lesson>(lessons[0]);
   const [query, setQuery] = useState(lessons[0].defaultQuery);
   const [response, setResponse] = useState<QueryResponse | null>(null);
+  const [lastExecuted, setLastExecuted] = useState<string | null>(null);
 
   const [lessonCollapsed, setLessonCollapsed] = useState(false);
   const [editorCollapsed, setEditorCollapsed] = useState(false);
@@ -112,6 +113,7 @@ export default function App() {
     reset(DATABASE.seedSql);
     setQuery(lesson.defaultQuery);
     setResponse(null);
+    setLastExecuted(null);
     setLessonCollapsed(false);
     setEditorCollapsed(false);
     setEditorFullscreen(false);
@@ -143,6 +145,7 @@ export default function App() {
       setFeedback(null);
       return;
     }
+    setLastExecuted(query);
     setResponse(execute(query));
     setFeedback(null);
   };
@@ -151,6 +154,7 @@ export default function App() {
     reset(DATABASE.seedSql);
     setQuery(lesson.defaultQuery);
     setResponse(null);
+    setLastExecuted(null);
     setFeedback(null);
     setFailCount(0);
   };
@@ -246,11 +250,11 @@ export default function App() {
       taskTotal: lesson.tasks.length || undefined,
       editorQuery: query,
       editorIsDefault: query === lesson.defaultQuery,
-      lastExecutedQuery: response ? query : undefined,
+      lastExecutedQuery: lastExecuted ?? undefined,
       lastResult: response ? formatResultForLLM(response) : undefined,
       lastError: response?.error ?? undefined,
     }),
-    [lesson, query, response, currentTask, currentTaskIndex, execute],
+    [lesson, query, response, currentTask, currentTaskIndex, execute, lastExecuted],
   );
 
   if (loadError) {
@@ -375,12 +379,12 @@ export default function App() {
           )}
         </main>
 
-          <ChatPanel
-            context={chatContext}
-            collapsed={chatCollapsed}
-            hidden={editorFullscreen}
-            onToggle={() => setChatCollapsed((v) => !v)}
-          />
+        <ChatPanel
+          context={chatContext}
+          collapsed={chatCollapsed}
+          hidden={editorFullscreen}
+          onToggle={() => setChatCollapsed((v) => !v)}
+        />
       </div>
     </div>
   );
