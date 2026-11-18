@@ -67,9 +67,9 @@ Aliases are especially useful once you start calculating — a header like \`age
     },
     {
       id: 'alias-5',
-      prompt: 'For each movie, show its title and how many years old it is (2024 minus year) as age_years.',
+      prompt: 'For each movie, show its title and how many years old it is as age_years.',
       solutionQuery:
-        'SELECT title, 2024 - year AS age_years FROM movies;',
+        "SELECT title, CAST(strftime('%Y', 'now') AS INTEGER) - year AS age_years FROM movies;",
     },
   ],
 };
