@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { useChat } from "../hooks/useChat";
 import type { ChatContext } from "../hooks/useChat";
+import { Markdown } from "./Markdown";
 
 interface Props {
   context: ChatContext;
@@ -31,7 +30,7 @@ export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
   };
 
   if (hidden) return null;
-  
+
   if (collapsed) {
     return (
       <button
@@ -86,27 +85,7 @@ export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
           <div key={i} className={`chat-msg chat-msg-${m.role}`}>
             {m.role === "assistant" ? (
               m.content ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    code({ className, children, ...props }) {
-                      const isInline = !className;
-                      return isInline ? (
-                        <code className="md-inline-code" {...props}>
-                          {children}
-                        </code>
-                      ) : (
-                        <pre className="md-code-block">
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        </pre>
-                      );
-                    },
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
+                <Markdown>{m.content}</Markdown>
               ) : (
                 <span className="chat-typing">…</span>
               )

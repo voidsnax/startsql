@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
 import type { Lesson } from '../data/lessons';
 import type { DatabaseDef } from '../data/schemas';
+import { Markdown } from './Markdown';
 import { SchemaPreview } from './SchemaPreview';
 
 interface Props {
@@ -42,39 +40,13 @@ export function LessonPanel({ lesson, database, collapsed, onToggle, children }:
       </div>
 
       <div className="lesson-body">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight]}
-          components={{
-            code({ className, children, ...props }) {
-              const isInline = !className;
-              return isInline ? (
-                <code className="md-inline-code" {...props}>
-                  {children}
-                </code>
-              ) : (
-                <pre className="md-code-block">
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                </pre>
-              );
-            },
-          }}
-        >
-          {lesson.content}
-        </ReactMarkdown>
+        <Markdown>{lesson.content}</Markdown>
 
         {lesson.didYouKnow && (
           <div className="did-you-know">
             <div className="did-you-know-heading">💡 Did you know?</div>
             <div className="did-you-know-body">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-              >
-                {lesson.didYouKnow}
-              </ReactMarkdown>
+              <Markdown>{lesson.didYouKnow}</Markdown>
             </div>
           </div>
         )}
