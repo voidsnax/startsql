@@ -228,7 +228,7 @@ export function SqlEditor({
             type="button"
             className="editor-table-hint"
             onClick={onShowSchema}
-            title="List every table and column in the results panel"
+            title="List every table in the results panel"
           >
             <span className="editor-table-hint-icon" aria-hidden="true">
               ◫
