@@ -21,7 +21,7 @@ export interface IsolatedRun {
 
 export interface EditorTable {
   name: string;
-  columns: { name: string; type: string }[];
+  columns: { name: string; type: string; pk: boolean; notNull: boolean }[];
 }
 
 export function useSqlEngine() {

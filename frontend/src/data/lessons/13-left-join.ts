@@ -110,7 +110,6 @@ That finds every student who isn't enrolled in any course. The LEFT JOIN keeps e
       orderMatters: true,
     },
   ],
-  showSchema: true,
 };
 
 export default lesson;

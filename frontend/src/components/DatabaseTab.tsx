@@ -22,21 +22,25 @@ export function DatabaseTab({ schema }: Props) {
       <div className="db-tab-grid">
         {schema.map((t) => (
           <div key={t.name} className="db-card">
-            <div className="db-card-name">{t.name}</div>
+            <div className="db-card-name">
+              {t.name}
+              <span className="db-card-count">{t.columns.length}</span>
+            </div>
             <div className="db-card-cols">
               {t.columns.map((c) => (
                 <div key={c.name} className="db-col">
                   <span className="db-col-name">{c.name}</span>
-                  <span className="db-col-type">{c.type || "—"}</span>
+                  <span className="db-col-meta">
+                    {c.pk && <span className="db-badge db-badge-pk">PK</span>}
+                    {c.notNull && <span className="db-badge">NOT NULL</span>}
+                    <span className="db-col-type">{c.type || "—"}</span>
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      <p className="db-tab-note">
-        Live view — updates whenever you run CREATE, ALTER or DROP.
-      </p>
     </div>
   );
 }

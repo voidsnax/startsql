@@ -214,7 +214,7 @@
 /* ───────────── Tab bars ───────────── */
 .pane-tabs {
   flex-shrink: 0;
-  height: 40px;
+  height: 44px;
   display: flex;
   align-items: stretch;
   gap: 2px;
@@ -497,111 +497,7 @@
   font-size: var(--text-xs);
 }
 
-.schema-preview {
-  margin-top: var(--sp-5);
-  padding: var(--sp-4) 18px;
-  background: var(--bg-panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-}
-.schema-label {
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--sp-3);
-}
-.schema-tables {
-  display: flex;
-  gap: var(--sp-4);
-  flex-wrap: wrap;
-}
-.schema-table {
-  flex: 1;
-  min-width: 220px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  overflow: hidden;
-}
-.schema-table-name {
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--bg-raised);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--brand-hi);
-  border-bottom: 1px solid var(--line);
-}
-.schema-columns {
-  padding: 6px 0;
-}
-.schema-column {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-3);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-.schema-col-name {
-  font-weight: 500;
-}
-.schema-col-type {
-  color: var(--fg-dim);
-}
-.schema-col-note {
-  margin-left: auto;
-  color: var(--fg-dim);
-  font-size: 0.65625rem;
-  font-family: var(--font-sans);
-  font-style: italic;
-}
-
 /* ───────────── Editor ───────────── */
-.sql-editor {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--bg);
-}
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-4);
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--line);
-}
-.editor-table-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--fg-muted);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.editor-table-hint:hover {
-  color: var(--fg);
-  border-color: var(--brand);
-}
-.editor-table-hint-icon {
-  color: var(--brand-hi);
-}
-.editor-actions {
-  margin-left: auto;
-  display: flex;
-  gap: var(--sp-2);
-}
-
 .editor-codemirror {
   flex: 1 1 0;
   min-height: 0;
@@ -753,18 +649,25 @@
   overscroll-behavior: contain;
   padding: var(--sp-4);
 }
+
 .db-tab-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--sp-3);
+  align-content: start;
 }
+
 .db-card {
   background: var(--bg-panel);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   overflow: hidden;
 }
+
 .db-card-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   padding: var(--sp-2) var(--sp-3);
   background: var(--bg-raised);
   font-family: var(--font-mono);
@@ -773,9 +676,21 @@
   color: var(--brand-hi);
   border-bottom: 1px solid var(--line);
 }
+
+.db-card-count {
+  margin-left: auto;
+  padding: 1px 7px;
+  background: var(--bg);
+  border-radius: var(--r-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+
 .db-card-cols {
   padding: 6px 0;
 }
+
 .db-col {
   display: flex;
   align-items: center;
@@ -785,18 +700,47 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
-.db-col-name {
-  font-weight: 500;
+
+.db-col + .db-col {
+  border-top: 1px solid var(--line-soft);
 }
+
+.db-col-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.db-col-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .db-col-type {
   color: var(--fg-dim);
 }
-.db-tab-note {
-  margin-top: var(--sp-3);
-  font-size: var(--text-2xs);
+
+.db-badge {
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--fg-dim);
 }
 
+.db-badge-pk {
+  border-color: var(--brand);
+  background: var(--brand-wash);
+  color: var(--brand-hi);
+}
 /* ───────────── Assistant ───────────── */
 .chat-panel {
   flex: 1;
@@ -1141,7 +1085,6 @@
     grid-row: 2;
   }
 
-  /* One view at a time, full height */
   .app-shell[data-view="lesson"] .work-pane {
     display: none;
   }
@@ -1149,7 +1092,7 @@
     display: none;
   }
 
-  /* Typing gets the whole pane — results return when the keyboard closes */
+  /* Typing gets the whole pane — output returns when the keyboard closes */
   .app-body[data-top="editor"][data-editor="focused"] .work-bottom,
   .app-body[data-top="editor"][data-editor="focused"] .pane-tabs-output {
     display: none;
@@ -1164,20 +1107,17 @@
   .work-bottom {
     min-height: 0;
   }
+
   .pane-tab {
     padding: 0 10px;
     font-size: var(--text-xs);
   }
 
-  .editor-toolbar {
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3);
-  }
-  .editor-toolbar .btn-label {
+  .pane-tabs-extra .btn-label {
     display: none;
   }
-  .editor-toolbar .btn-primary,
-  .editor-toolbar .btn-secondary {
+  .pane-tabs-extra .btn-primary,
+  .pane-tabs-extra .btn-secondary {
     min-width: 36px;
     padding: 6px 10px;
     font-size: var(--text-md);
@@ -1188,6 +1128,13 @@
 
   .chat-input-row textarea {
     font-size: 1rem;
+  }
+
+  .db-tab {
+    padding: var(--sp-3);
+  }
+  .db-tab-grid {
+    grid-template-columns: 1fr;
   }
 
   .lesson-tasks {

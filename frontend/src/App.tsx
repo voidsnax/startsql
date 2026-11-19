@@ -21,11 +21,6 @@ import type { ChatContext } from "./hooks/useChat";
 import { validateTask, validateMutation } from "./hooks/useTaskValidator";
 import "./App.css";
 
-const SCHEMA_QUERY = `SELECT name AS table_name
-FROM sqlite_master
-WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-ORDER BY name;`;
-
 function formatResultForLLM(response: QueryResponse): string | undefined {
   if (!response || response.error || response.results.length === 0)
     return undefined;
@@ -47,7 +42,7 @@ function readSchema(execute: (sql: string) => QueryResponse): EditorTable[] {
   return res.results[0].values.map((row) => {
     const name = String(row[0]);
     const cols = execute(
-      `SELECT name, type FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
+      `SELECT name, type, pk, "notnull" FROM pragma_table_info('${name.replace(/'/g, "''")}') ORDER BY cid;`,
     );
     const columns =
       cols.error || cols.results.length === 0
@@ -55,6 +50,8 @@ function readSchema(execute: (sql: string) => QueryResponse): EditorTable[] {
         : cols.results[0].values.map((c) => ({
             name: String(c[0]),
             type: String(c[1] ?? ""),
+            pk: Number(c[2]) > 0,
+            notNull: Number(c[3]) > 0,
           }));
     return { name, columns };
   });
@@ -203,13 +200,6 @@ export default function App() {
     setLastExecuted(null);
     setFeedback(null);
     setFailCount(0);
-  };
-
-  const handleShowSchema = () => {
-    endEditing();
-    setLastExecuted(SCHEMA_QUERY);
-    setResponse(execute(SCHEMA_QUERY));
-    setBottomTab("results");
   };
 
   const handleCheckAnswer = () => {
@@ -364,7 +354,7 @@ export default function App() {
         data-editor={editorFocused ? "focused" : "idle"}
       >
         <div className="lesson-pane" ref={lessonPaneRef}>
-          <LessonPanel lesson={lesson} database={DATABASE}>
+          <LessonPanel lesson={lesson}>
             <TaskFooter
               lesson={lesson}
               currentTaskIndex={currentTaskIndex}
@@ -409,7 +399,30 @@ export default function App() {
               )}
             </button>
             <div className="pane-tabs-extra">
-              {topTab === "assistant" && (
+              {topTab === "editor" ? (
+                <>
+                  <button
+                    onClick={handleReset}
+                    className="btn-secondary"
+                    title="Reset database"
+                    type="button"
+                  >
+                    <span className="btn-icon">↺</span>
+                    <span className="btn-label">Reset DB</span>
+                  </button>
+                  <button
+                    onClick={handleRun}
+                    disabled={!ready}
+                    className="btn-primary"
+                    title="Run query"
+                    type="button"
+                  >
+                    <span className="btn-icon">▶</span>
+                    <span className="btn-label">Run</span>
+                    <kbd>Ctrl+Enter</kbd>
+                  </button>
+                </>
+              ) : (
                 <>
                   {streaming && <span className="chat-status">thinking…</span>}
                   {messages.length > 0 && !streaming && (
@@ -432,10 +445,8 @@ export default function App() {
                 value={query}
                 onChange={setQuery}
                 onRun={handleRun}
-                onReset={handleReset}
                 disabled={!ready}
                 schema={liveSchema}
-                onShowSchema={handleShowSchema}
                 onFocusChange={setEditorFocused}
               />
             </div>

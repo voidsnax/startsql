@@ -19,5 +19,4 @@ export interface Lesson {
   didYouKnow?: string;
   defaultQuery: string;
   tasks: Task[];
-  showSchema?: boolean;
 }

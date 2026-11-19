@@ -8,7 +8,6 @@ const lesson: Lesson = {
   defaultQuery: `SELECT *
 FROM students;`,
   tasks: [],
-  showSchema: true,
   didYouKnow: `SQL was invented at IBM in the 1970s. The name is pronounced either "sequel" or "S-Q-L" — both are considered correct. PostgreSQL, MySQL, and SQLite are different flavors of the same core language.`,
   content: `A **database** is an organized collection of data. Think of it as a very powerful, very structured spreadsheet.
 

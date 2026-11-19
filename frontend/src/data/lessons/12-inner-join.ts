@@ -112,7 +112,6 @@ JOIN courses ON students.course_id = courses.id;
         'SELECT students.name AS student_name, courses.name AS course_name, courses.teacher AS teacher FROM students JOIN courses ON students.course_id = courses.id WHERE courses.active = 1;',
     },
   ],
-  showSchema: true,
 };
 
 export default lesson;

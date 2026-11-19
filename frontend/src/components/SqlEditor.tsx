@@ -146,10 +146,8 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   onRun: () => void;
-  onReset: () => void;
   disabled: boolean;
   schema: EditorTable[];
-  onShowSchema: () => void;
   onFocusChange: (focused: boolean) => void;
 }
 
@@ -157,10 +155,8 @@ export function SqlEditor({
   value,
   onChange,
   onRun,
-  onReset,
   disabled,
   schema,
-  onShowSchema,
   onFocusChange,
 }: Props) {
   const onRunRef = useRef(onRun);
@@ -195,64 +191,24 @@ export function SqlEditor({
   );
 
   return (
-    <div className="sql-editor">
-      <div className="editor-toolbar">
-        {schema.length > 0 && (
-          <button
-            type="button"
-            className="editor-table-hint"
-            onClick={onShowSchema}
-            title="List tables in the results pane"
-          >
-            <span className="editor-table-hint-icon" aria-hidden="true">
-              ◫
-            </span>
-            {schema.length} {schema.length === 1 ? "table" : "tables"}
-          </button>
-        )}
-        <div className="editor-actions">
-          <button
-            onClick={onReset}
-            className="btn-secondary"
-            title="Reset database"
-            type="button"
-          >
-            <span className="btn-icon">↺</span>
-            <span className="btn-label">Reset DB</span>
-          </button>
-          <button
-            onClick={onRun}
-            disabled={disabled}
-            className="btn-primary"
-            title="Run query"
-            type="button"
-          >
-            <span className="btn-icon">▶</span>
-            <span className="btn-label">Run</span>
-            <kbd>Ctrl+Enter</kbd>
-          </button>
-        </div>
-      </div>
-
-      <div
-        className="editor-codemirror"
-        onFocus={() => onFocusChange(true)}
-        onBlur={() => onFocusChange(false)}
-        onPointerDown={() => onFocusChange(true)}
-      >
-        <CodeMirror
-          value={value}
-          height="100%"
-          theme={oneDark}
-          extensions={extensions}
-          onChange={onChange}
-          basicSetup={{
-            lineNumbers: true,
-            highlightActiveLine: true,
-            autocompletion: false,
-          }}
-        />
-      </div>
+    <div
+      className="editor-codemirror"
+      onFocus={() => onFocusChange(true)}
+      onBlur={() => onFocusChange(false)}
+      onPointerDown={() => onFocusChange(true)}
+    >
+      <CodeMirror
+        value={value}
+        height="100%"
+        theme={oneDark}
+        extensions={extensions}
+        onChange={onChange}
+        basicSetup={{
+          lineNumbers: true,
+          highlightActiveLine: true,
+          autocompletion: false,
+        }}
+      />
     </div>
   );
 }

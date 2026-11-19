@@ -8,7 +8,6 @@ const lesson: Lesson = {
   defaultQuery: `SELECT name, course_id
 FROM students;`,
   tasks: [],
-  showSchema: true,
   didYouKnow: `The link between \`students.course_id\` and \`courses.id\` is called a **foreign key**. Real databases often enforce this — you couldn't insert a student with \`course_id = 99\` if no course 99 exists. SQLite doesn't enforce it by default, but the *concept* is universal.`,
   content: `Imagine storing everything in one giant table:
 

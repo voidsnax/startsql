@@ -1,18 +1,13 @@
-import type { ReactNode } from "react";
-import type { Lesson } from "../data/lessons";
-import type { DatabaseDef } from "../data/schemas";
-import { Markdown } from "./Markdown";
-import { SchemaPreview } from "./SchemaPreview";
+import type { ReactNode } from 'react';
+import type { Lesson } from '../data/lessons';
+import { Markdown } from './Markdown';
 
 interface Props {
   lesson: Lesson;
-  database: DatabaseDef;
   children?: ReactNode;
 }
 
-export function LessonPanel({ lesson, database, children }: Props) {
-  const showSchema = lesson.showSchema === true;
-
+export function LessonPanel({ lesson, children }: Props) {
   return (
     <section className="lesson-panel">
       <div className="lesson-header">
@@ -32,8 +27,6 @@ export function LessonPanel({ lesson, database, children }: Props) {
             </div>
           </div>
         )}
-
-        {showSchema && <SchemaPreview database={database} />}
       </div>
 
       {children}
