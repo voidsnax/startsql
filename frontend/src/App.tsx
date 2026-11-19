@@ -80,6 +80,7 @@ export default function App() {
   const [bottomTab, setBottomTab] = useState<BottomTab>("results");
   const [assistantUnread, setAssistantUnread] = useState(false);
   const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
+  const [editorFocused, setEditorFocused] = useState(false);
 
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [failCount, setFailCount] = useState(0);
@@ -142,6 +143,21 @@ export default function App() {
     if (topTab === "assistant") setAssistantUnread(false);
   }, [topTab]);
 
+  // Mobile browsers hide the keyboard without blurring the editor, so
+  // onBlur alone never fires. Watch the viewport growing back instead.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let prev = vv.height;
+    const onResize = () => {
+      const delta = vv.height - prev;
+      prev = vv.height;
+      if (delta > 120) setEditorFocused(false);
+    };
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   const liveSchema = useMemo(
     () => (ready ? readSchema(execute) : []),
     [ready, lesson, response, execute, schemaVersion],
@@ -155,7 +171,14 @@ export default function App() {
     [liveSchema],
   );
 
+  const endEditing = () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+    setEditorFocused(false);
+  };
+
   const handleRun = () => {
+    endEditing();
     if (!query.trim()) {
       setResponse({
         results: [],
@@ -173,6 +196,7 @@ export default function App() {
   };
 
   const handleReset = () => {
+    endEditing();
     reset(DATABASE.seedSql);
     setQuery(lesson.defaultQuery);
     setResponse(null);
@@ -182,6 +206,7 @@ export default function App() {
   };
 
   const handleShowSchema = () => {
+    endEditing();
     setLastExecuted(SCHEMA_QUERY);
     setResponse(execute(SCHEMA_QUERY));
     setBottomTab("results");
@@ -333,7 +358,11 @@ export default function App() {
         onMobileViewChange={setMobileView}
         practiceDot={assistantUnread}
       />
-      <div className="app-body" data-top={topTab}>
+      <div
+        className="app-body"
+        data-top={topTab}
+        data-editor={editorFocused ? "focused" : "idle"}
+      >
         <div className="lesson-pane" ref={lessonPaneRef}>
           <LessonPanel lesson={lesson} database={DATABASE}>
             <TaskFooter
@@ -407,6 +436,7 @@ export default function App() {
                 disabled={!ready}
                 schema={liveSchema}
                 onShowSchema={handleShowSchema}
+                onFocusChange={setEditorFocused}
               />
             </div>
             <div className="tab-panel" hidden={topTab !== "assistant"}>

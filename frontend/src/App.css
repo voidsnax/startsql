@@ -187,7 +187,9 @@
 }
 
 /* ───────────── Two-pane body ───────────── */
-.app-body { display: contents; }
+.app-body {
+  display: contents;
+}
 
 .lesson-pane {
   grid-column: 1;
@@ -291,6 +293,12 @@
   min-height: 140px;
   display: flex;
   flex-direction: column;
+}
+
+/* Assistant owns the whole column — SQL output isn't relevant while chatting */
+.app-body[data-top="assistant"] .work-bottom,
+.app-body[data-top="assistant"] .pane-tabs-output {
+  display: none;
 }
 
 .tab-panel {
@@ -814,6 +822,7 @@
 }
 
 .chat-body {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -822,6 +831,11 @@
   padding: var(--sp-4);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+/* Reserved space so the newest question can always reach the top */
+.chat-tail {
+  flex: 0 0 auto;
+  min-height: 100%;
 }
 .chat-empty {
   padding: var(--sp-2) var(--sp-1);
@@ -1082,9 +1096,13 @@
 }
 
 @media (max-width: 900px) {
-  :root { --header-h: 52px; }
+  :root {
+    --header-h: 52px;
+  }
 
-  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
   .lesson-topbar {
     grid-column: 1;
@@ -1093,8 +1111,12 @@
     gap: var(--sp-2);
   }
 
-  .app-logo { display: none; }
-  .view-switch { display: inline-flex; }
+  .app-logo {
+    display: none;
+  }
+  .view-switch {
+    display: inline-flex;
+  }
 
   .lesson-select {
     flex: 1 1 0;
@@ -1105,44 +1127,88 @@
     text-overflow: ellipsis;
   }
 
-  .app-progress { font-size: var(--text-2xs); }
+  .app-progress {
+    font-size: var(--text-2xs);
+  }
 
-  .lesson-pane { grid-column: 1; grid-row: 2; border-right: none; }
-  .work-pane { grid-column: 1; grid-row: 2; }
+  .lesson-pane {
+    grid-column: 1;
+    grid-row: 2;
+    border-right: none;
+  }
+  .work-pane {
+    grid-column: 1;
+    grid-row: 2;
+  }
 
   /* One view at a time, full height */
-  .app-shell[data-view="lesson"] .work-pane { display: none; }
-  .app-shell[data-view="practice"] .lesson-pane { display: none; }
-
-  /* Assistant fills the pane so the keyboard can never cover the input */
-  .app-shell[data-view="practice"] .app-body[data-top="assistant"] .work-bottom,
-  .app-shell[data-view="practice"] .app-body[data-top="assistant"] .pane-tabs-output {
+  .app-shell[data-view="lesson"] .work-pane {
+    display: none;
+  }
+  .app-shell[data-view="practice"] .lesson-pane {
     display: none;
   }
 
-  .lesson-panel { padding: 18px 18px 14px; }
-  .work-top { min-height: 0; }
-  .work-bottom { min-height: 0; }
-  .pane-tab { padding: 0 10px; font-size: var(--text-xs); }
+  /* Typing gets the whole pane — results return when the keyboard closes */
+  .app-body[data-top="editor"][data-editor="focused"] .work-bottom,
+  .app-body[data-top="editor"][data-editor="focused"] .pane-tabs-output {
+    display: none;
+  }
 
-  .editor-toolbar { gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
-  .editor-toolbar .btn-label { display: none; }
+  .lesson-panel {
+    padding: 18px 18px 14px;
+  }
+  .work-top {
+    min-height: 0;
+  }
+  .work-bottom {
+    min-height: 0;
+  }
+  .pane-tab {
+    padding: 0 10px;
+    font-size: var(--text-xs);
+  }
+
+  .editor-toolbar {
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .editor-toolbar .btn-label {
+    display: none;
+  }
   .editor-toolbar .btn-primary,
   .editor-toolbar .btn-secondary {
     min-width: 36px;
     padding: 6px 10px;
     font-size: var(--text-md);
   }
-  .btn-primary kbd { display: none; }
+  .btn-primary kbd {
+    display: none;
+  }
 
-  .chat-input-row textarea { font-size: 1rem; }
+  .chat-input-row textarea {
+    font-size: 1rem;
+  }
 
-  .lesson-tasks { margin-top: 22px; padding-top: 18px; }
-  .lesson-task-top { gap: 10px; }
-  .task-dots { order: 3; flex-basis: 100%; }
-  .lesson-task-nav { flex-direction: column; gap: var(--sp-2); }
+  .lesson-tasks {
+    margin-top: 22px;
+    padding-top: 18px;
+  }
+  .lesson-task-top {
+    gap: 10px;
+  }
+  .task-dots {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .lesson-task-nav {
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
   .lesson-task-nav .btn-secondary,
-  .lesson-task-nav .btn-primary { width: 100%; }
+  .lesson-task-nav .btn-primary {
+    width: 100%;
+  }
 }
 
 @media (max-width: 1200px) {

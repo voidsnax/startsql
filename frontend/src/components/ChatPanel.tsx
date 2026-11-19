@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
 import type { ChatMessage } from "../hooks/useChat";
 
@@ -11,19 +11,28 @@ interface Props {
 
 export function ChatPanel({ messages, streaming, active, onSend }: Props) {
   const [input, setInput] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const stickRef = useRef(true);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+  const prevLen = useRef(0);
+
+  const scrollToLatest = useCallback(() => {
+    if (!active) return;
+    const body = bodyRef.current;
+    const anchor = anchorRef.current;
+    if (!body || !anchor) return;
+    body.scrollTop = Math.max(0, anchor.offsetTop - 8);
+  }, [active]);
+
+  // One scroll per exchange — never while tokens arrive.
+  useEffect(() => {
+    const grew = messages.length > prevLen.current;
+    prevLen.current = messages.length;
+    if (grew) scrollToLatest();
+  }, [messages, scrollToLatest]);
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, active]);
-
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-  };
+    if (active) scrollToLatest();
+  }, [active, scrollToLatest]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -32,9 +41,11 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
     onSend(text);
   };
 
+  const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
+
   return (
     <div className="chat-panel">
-      <div className="chat-body" ref={scrollRef} onScroll={handleScroll}>
+      <div className="chat-body" ref={bodyRef}>
         {messages.length === 0 && (
           <div className="chat-empty">
             <p className="chat-empty-title">I'm here if you get stuck.</p>
@@ -44,7 +55,11 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={`chat-msg chat-msg-${m.role}`}>
+          <div
+            key={i}
+            ref={i === lastUserIndex ? anchorRef : undefined}
+            className={`chat-msg chat-msg-${m.role}`}
+          >
             {m.role === "assistant" ? (
               m.content ? (
                 <Markdown>{m.content}</Markdown>
@@ -56,6 +71,7 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
             )}
           </div>
         ))}
+        {messages.length > 0 && <div className="chat-tail" aria-hidden="true" />}
       </div>
       <div className="chat-input-row">
         <textarea

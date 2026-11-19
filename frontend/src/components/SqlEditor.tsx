@@ -25,13 +25,64 @@ const EMPTY_DATA: CompletionData = {
 };
 
 const KEYWORD_OPTIONS: Completion[] = [
-  "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "BETWEEN", "LIKE",
-  "IS", "NULL", "ORDER", "BY", "ASC", "DESC", "LIMIT", "OFFSET", "DISTINCT",
-  "AS", "GROUP", "HAVING", "JOIN", "INNER", "LEFT", "ON", "INSERT", "INTO",
-  "VALUES", "UPDATE", "SET", "DELETE", "CREATE", "TABLE", "ALTER", "DROP",
-  "ADD", "COLUMN", "RENAME", "TO", "PRIMARY", "KEY", "UNIQUE", "DEFAULT",
-  "CHECK", "FOREIGN", "REFERENCES", "IF", "EXISTS", "CASE", "WHEN", "THEN",
-  "ELSE", "END", "COUNT", "SUM", "AVG", "MIN", "MAX",
+  "SELECT",
+  "FROM",
+  "WHERE",
+  "AND",
+  "OR",
+  "NOT",
+  "IN",
+  "BETWEEN",
+  "LIKE",
+  "IS",
+  "NULL",
+  "ORDER",
+  "BY",
+  "ASC",
+  "DESC",
+  "LIMIT",
+  "OFFSET",
+  "DISTINCT",
+  "AS",
+  "GROUP",
+  "HAVING",
+  "JOIN",
+  "INNER",
+  "LEFT",
+  "ON",
+  "INSERT",
+  "INTO",
+  "VALUES",
+  "UPDATE",
+  "SET",
+  "DELETE",
+  "CREATE",
+  "TABLE",
+  "ALTER",
+  "DROP",
+  "ADD",
+  "COLUMN",
+  "RENAME",
+  "TO",
+  "PRIMARY",
+  "KEY",
+  "UNIQUE",
+  "DEFAULT",
+  "CHECK",
+  "FOREIGN",
+  "REFERENCES",
+  "IF",
+  "EXISTS",
+  "CASE",
+  "WHEN",
+  "THEN",
+  "ELSE",
+  "END",
+  "COUNT",
+  "SUM",
+  "AVG",
+  "MIN",
+  "MAX",
 ].map((label) => ({ label, type: "keyword" }));
 
 function buildCompletions(schema: EditorTable[]): CompletionData {
@@ -99,6 +150,7 @@ interface Props {
   disabled: boolean;
   schema: EditorTable[];
   onShowSchema: () => void;
+  onFocusChange: (focused: boolean) => void;
 }
 
 export function SqlEditor({
@@ -109,6 +161,7 @@ export function SqlEditor({
   disabled,
   schema,
   onShowSchema,
+  onFocusChange,
 }: Props) {
   const onRunRef = useRef(onRun);
   const disabledRef = useRef(disabled);
@@ -151,7 +204,9 @@ export function SqlEditor({
             onClick={onShowSchema}
             title="List tables in the results pane"
           >
-            <span className="editor-table-hint-icon" aria-hidden="true">◫</span>
+            <span className="editor-table-hint-icon" aria-hidden="true">
+              ◫
+            </span>
             {schema.length} {schema.length === 1 ? "table" : "tables"}
           </button>
         )}
@@ -179,7 +234,12 @@ export function SqlEditor({
         </div>
       </div>
 
-      <div className="editor-codemirror">
+      <div
+        className="editor-codemirror"
+        onFocus={() => onFocusChange(true)}
+        onBlur={() => onFocusChange(false)}
+        onPointerDown={() => onFocusChange(true)}
+      >
         <CodeMirror
           value={value}
           height="100%"
