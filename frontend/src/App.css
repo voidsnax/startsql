@@ -28,7 +28,7 @@
 }
 
 .app-header::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: auto 0 0 0;
   height: 1px;
@@ -862,6 +862,7 @@
 
 /* ───────────── Chat panel ───────────── */
 .chat-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -869,7 +870,26 @@
   background:
     linear-gradient(180deg, rgba(99, 102, 241, 0.05), transparent 220px),
     var(--bg-panel);
-  border-left: 1px solid var(--line);
+  border-left: none;
+}
+
+.chat-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--brand),
+    #7c5cf0 40%,
+    var(--info) 80%,
+    transparent
+  );
+  opacity: 0.4;
 }
 
 .chat-header {
@@ -1044,6 +1064,7 @@
 
 /* ───────────── Collapsed chat rail ───────────── */
 .chat-strip {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1052,14 +1073,38 @@
   gap: var(--sp-3);
   padding: var(--sp-4) 0;
   background: var(--bg-panel);
-  border-left: 1px solid var(--line);
+  border-left: none;
   border-radius: 0;
   color: var(--fg-muted);
+}
+
+/* Same accent as the open panel, but quieter — brightens on hover,
+   comes fully alive only when the panel expands. */
+.chat-strip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--brand),
+    #7c5cf0 40%,
+    var(--info) 80%,
+    transparent
+  );
+  opacity: 0.25;
 }
 
 .chat-strip:hover {
   background: var(--bg-raised);
   color: var(--fg);
+}
+
+.chat-strip:hover::before {
+  opacity: 0.45;
 }
 
 .chat-strip-icon {
@@ -1432,6 +1477,10 @@
     border-radius: 0;
   }
 
+  .chat-panel::before {
+    display: none;
+  }
+
   .chat-header {
     padding: 0 14px 0 18px;
   }
@@ -1462,17 +1511,38 @@
     flex-direction: row;
     gap: 0;
     padding: 0;
-    background: var(--brand);
+    background: linear-gradient(
+      135deg,
+      var(--brand) 0%,
+      #7c5cf0 55%,
+      var(--info) 135%
+    );
     color: var(--fg-on-brand);
     border: none;
     border-radius: 50%;
-    box-shadow: var(--shadow-pop);
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.35),
+      0 2px 12px rgba(99, 102, 241, 0.45);
     animation: none;
   }
 
+  /* The rail's edge line belongs to desktop only — not on a round FAB */
+  .chat-strip::before {
+    display: none;
+  }
+
   .chat-strip:hover {
-    background: var(--brand-hi);
+    background: linear-gradient(
+      135deg,
+      var(--brand-hi) 0%,
+      #8b6ff5 55%,
+      #5cc9f8 135%
+    );
     color: var(--fg-on-brand);
+  }
+
+  .chat-strip:active {
+    transform: scale(0.94);
   }
 
   .chat-strip-icon {
