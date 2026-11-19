@@ -1,77 +1,40 @@
 import { useEffect, useRef, useState } from "react";
-import { useChat } from "../hooks/useChat";
-import type { ChatContext } from "../hooks/useChat";
 import { Markdown } from "./Markdown";
+import type { ChatMessage } from "../hooks/useChat";
 
 interface Props {
-  context: ChatContext;
-  collapsed: boolean;
-  hidden?: boolean;
-  onToggle: () => void;
+  messages: ChatMessage[];
+  streaming: boolean;
+  active: boolean;
+  onSend: (text: string) => void;
 }
 
-export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
-  const { messages, streaming, send, clear } = useChat();
+export function ChatPanel({ messages, streaming, active, onSend }: Props) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, active]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || streaming) return;
     setInput("");
-    send(text, context);
+    onSend(text);
   };
 
-  if (hidden) return null;
-
-  if (collapsed) {
-    return (
-      <button
-        className="chat-strip"
-        onClick={onToggle}
-        type="button"
-        title="Open assistant"
-      >
-        <span className="chat-strip-icon">◈</span>
-        <span className="chat-strip-label">Assistant</span>
-      </button>
-    );
-  }
-
-  const showClear = messages.length > 0 && !streaming;
-
   return (
-    <aside className="chat-panel">
-      <div className="chat-header">
-        <span className="chat-title">
-          <span className="chat-title-mark">◈</span> Assistant
-        </span>
-        {streaming && <span className="chat-status">thinking…</span>}
-        <div className="chat-header-right">
-          {showClear && (
-            <button className="chat-clear-btn" onClick={clear}>
-              Clear
-            </button>
-          )}
-          <button
-            className="chat-collapse-btn"
-            onClick={onToggle}
-            title="Collapse assistant"
-            type="button"
-          >
-            ›
-          </button>
-        </div>
-      </div>
-
-      <div className="chat-body" ref={scrollRef}>
+    <div className="chat-panel">
+      <div className="chat-body" ref={scrollRef} onScroll={handleScroll}>
         {messages.length === 0 && (
           <div className="chat-empty">
             <p className="chat-empty-title">I'm here if you get stuck.</p>
@@ -80,7 +43,6 @@ export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
             </p>
           </div>
         )}
-
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg chat-msg-${m.role}`}>
             {m.role === "assistant" ? (
@@ -95,7 +57,6 @@ export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
           </div>
         ))}
       </div>
-
       <div className="chat-input-row">
         <textarea
           value={input}
@@ -108,16 +69,16 @@ export function ChatPanel({ context, collapsed, hidden, onToggle }: Props) {
           }}
           placeholder="Ask any questions…"
           rows={2}
-          disabled={streaming}
         />
         <button
           onClick={handleSend}
           disabled={streaming || !input.trim()}
           className="btn-primary"
+          type="button"
         >
           Send
         </button>
       </div>
-    </aside>
+    </div>
   );
 }

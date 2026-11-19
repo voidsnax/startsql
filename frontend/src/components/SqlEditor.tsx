@@ -25,64 +25,13 @@ const EMPTY_DATA: CompletionData = {
 };
 
 const KEYWORD_OPTIONS: Completion[] = [
-  "SELECT",
-  "FROM",
-  "WHERE",
-  "AND",
-  "OR",
-  "NOT",
-  "IN",
-  "BETWEEN",
-  "LIKE",
-  "IS",
-  "NULL",
-  "ORDER",
-  "BY",
-  "ASC",
-  "DESC",
-  "LIMIT",
-  "OFFSET",
-  "DISTINCT",
-  "AS",
-  "GROUP",
-  "HAVING",
-  "JOIN",
-  "INNER",
-  "LEFT",
-  "ON",
-  "INSERT",
-  "INTO",
-  "VALUES",
-  "UPDATE",
-  "SET",
-  "DELETE",
-  "CREATE",
-  "TABLE",
-  "ALTER",
-  "DROP",
-  "ADD",
-  "COLUMN",
-  "RENAME",
-  "TO",
-  "PRIMARY",
-  "KEY",
-  "UNIQUE",
-  "DEFAULT",
-  "CHECK",
-  "FOREIGN",
-  "REFERENCES",
-  "IF",
-  "EXISTS",
-  "CASE",
-  "WHEN",
-  "THEN",
-  "ELSE",
-  "END",
-  "COUNT",
-  "SUM",
-  "AVG",
-  "MIN",
-  "MAX",
+  "SELECT", "FROM", "WHERE", "AND", "OR", "NOT", "IN", "BETWEEN", "LIKE",
+  "IS", "NULL", "ORDER", "BY", "ASC", "DESC", "LIMIT", "OFFSET", "DISTINCT",
+  "AS", "GROUP", "HAVING", "JOIN", "INNER", "LEFT", "ON", "INSERT", "INTO",
+  "VALUES", "UPDATE", "SET", "DELETE", "CREATE", "TABLE", "ALTER", "DROP",
+  "ADD", "COLUMN", "RENAME", "TO", "PRIMARY", "KEY", "UNIQUE", "DEFAULT",
+  "CHECK", "FOREIGN", "REFERENCES", "IF", "EXISTS", "CASE", "WHEN", "THEN",
+  "ELSE", "END", "COUNT", "SUM", "AVG", "MIN", "MAX",
 ].map((label) => ({ label, type: "keyword" }));
 
 function buildCompletions(schema: EditorTable[]): CompletionData {
@@ -147,15 +96,9 @@ interface Props {
   onChange: (value: string) => void;
   onRun: () => void;
   onReset: () => void;
-  onShowSchema: () => void;
   disabled: boolean;
   schema: EditorTable[];
-  lessonCollapsed: boolean;
-  onToggleLesson: () => void;
-  fullscreen: boolean;
-  onToggleFullscreen: () => void;
-  onCollapse: () => void;
-  onFocus?: () => void;
+  onShowSchema: () => void;
 }
 
 export function SqlEditor({
@@ -163,29 +106,19 @@ export function SqlEditor({
   onChange,
   onRun,
   onReset,
-  onShowSchema,
   disabled,
   schema,
-  lessonCollapsed,
-  onToggleLesson,
-  fullscreen,
-  onToggleFullscreen,
-  onCollapse,
-  onFocus,
+  onShowSchema,
 }: Props) {
   const onRunRef = useRef(onRun);
   const disabledRef = useRef(disabled);
+  const dataRef = useRef<CompletionData>(EMPTY_DATA);
 
   useEffect(() => {
     onRunRef.current = onRun;
     disabledRef.current = disabled;
-  }, [onRun, disabled]);
-
-  const dataRef = useRef<CompletionData>(EMPTY_DATA);
-
-  useEffect(() => {
     dataRef.current = buildCompletions(schema);
-  }, [schema]);
+  }, [onRun, disabled, schema]);
 
   const extensions = useMemo(
     () => [
@@ -210,69 +143,28 @@ export function SqlEditor({
 
   return (
     <div className="sql-editor">
-      <div className={`editor-toolbar${fullscreen ? " fullscreen" : ""}`}>
-        {!fullscreen && (
-          <button
-            className="lesson-toggle-btn"
-            onClick={onToggleLesson}
-            type="button"
-          >
-            {lessonCollapsed ? "▼ Show lesson" : "▲ Hide lesson"}
-          </button>
-        )}
-
-        <span className="editor-label">SQL Editor</span>
-
+      <div className="editor-toolbar">
         {schema.length > 0 && (
           <button
             type="button"
             className="editor-table-hint"
             onClick={onShowSchema}
-            title="List every table in the results panel"
+            title="List tables in the results pane"
           >
-            <span className="editor-table-hint-icon" aria-hidden="true">
-              ◫
-            </span>
+            <span className="editor-table-hint-icon" aria-hidden="true">◫</span>
             {schema.length} {schema.length === 1 ? "table" : "tables"}
           </button>
         )}
-
         <div className="editor-actions">
-          <button
-            className="icon-btn"
-            onClick={onToggleFullscreen}
-            title={fullscreen ? "Exit fullscreen" : "Fullscreen editor"}
-            type="button"
-          >
-            {fullscreen ? "⤡" : "⤢"}
-            <span className="icon-label">
-              {fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            </span>
-          </button>
-
-          {!fullscreen && (
-            <button
-              className="icon-btn"
-              onClick={onCollapse}
-              title="Hide editor and results"
-              type="button"
-            >
-              ✕<span className="icon-label">Hide</span>
-            </button>
-          )}
-
           <button
             onClick={onReset}
             className="btn-secondary"
             title="Reset database"
             type="button"
           >
-            <span className="btn-icon" aria-hidden="true">
-              ↺
-            </span>
+            <span className="btn-icon">↺</span>
             <span className="btn-label">Reset DB</span>
           </button>
-
           <button
             onClick={onRun}
             disabled={disabled}
@@ -280,9 +172,7 @@ export function SqlEditor({
             title="Run query"
             type="button"
           >
-            <span className="btn-icon" aria-hidden="true">
-              ▶
-            </span>
+            <span className="btn-icon">▶</span>
             <span className="btn-label">Run</span>
             <kbd>Ctrl+Enter</kbd>
           </button>
@@ -296,7 +186,6 @@ export function SqlEditor({
           theme={oneDark}
           extensions={extensions}
           onChange={onChange}
-          onFocus={onFocus}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLine: true,

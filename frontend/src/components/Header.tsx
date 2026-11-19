@@ -20,7 +20,7 @@ export function Header({
   onResetProgress,
 }: Props) {
   return (
-    <header className="app-header">
+    <header className="lesson-topbar">
       <div className="app-logo">
         <Logo size={28} />
         <div className="logo-text-group">
@@ -47,7 +47,7 @@ export function Header({
       </select>
 
       <div className="app-progress" title="Lessons completed">
-        Lessons: <strong>{completedLessons}</strong> / {totalLessons}
+        <strong>{completedLessons}</strong> / {totalLessons}
         {completedLessons > 0 && (
           <button
             className="progress-reset"

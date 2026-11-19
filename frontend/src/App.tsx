@@ -4,6 +4,7 @@ import { LessonPanel } from "./components/LessonPanel";
 import { SqlEditor } from "./components/SqlEditor";
 import { ResultTable } from "./components/ResultTable";
 import { ChatPanel } from "./components/ChatPanel";
+import { DatabaseTab } from "./components/DatabaseTab";
 import { TaskFooter } from "./components/TaskFooter";
 import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
@@ -15,10 +16,15 @@ import type {
   EditorTable,
 } from "./hooks/useSqlEngine";
 import { useProgress } from "./hooks/useProgress";
-import { validateTask, validateMutation } from "./hooks/useTaskValidator";
+import { useChat } from "./hooks/useChat";
 import type { ChatContext } from "./hooks/useChat";
-
+import { validateTask, validateMutation } from "./hooks/useTaskValidator";
 import "./App.css";
+
+const SCHEMA_QUERY = `SELECT name AS table_name
+FROM sqlite_master
+WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+ORDER BY name;`;
 
 function formatResultForLLM(response: QueryResponse): string | undefined {
   if (!response || response.error || response.results.length === 0)
@@ -62,33 +68,17 @@ function asResponse(run: IsolatedRun): QueryResponse {
   };
 }
 
-const SCHEMA_QUERY = `SELECT name AS table_name
-FROM sqlite_master
-WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-ORDER BY name;`;
+type TopTab = "editor" | "assistant";
+type BottomTab = "results" | "database";
 
 export default function App() {
   const [lesson, setLesson] = useState<Lesson>(lessons[0]);
   const [query, setQuery] = useState(lessons[0].defaultQuery);
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [lastExecuted, setLastExecuted] = useState<string | null>(null);
-
-  const [lessonCollapsed, setLessonCollapsed] = useState(false);
-  const [editorCollapsed, setEditorCollapsed] = useState(false);
-  const [editorFullscreen, setEditorFullscreen] = useState(false);
-  const [chatCollapsed, setChatCollapsed] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 900,
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 900px)");
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) setChatCollapsed(true);
-    };
-    handler(mq);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+  const [topTab, setTopTab] = useState<TopTab>("editor");
+  const [bottomTab, setBottomTab] = useState<BottomTab>("results");
+  const [assistantUnread, setAssistantUnread] = useState(false);
 
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [failCount, setFailCount] = useState(0);
@@ -99,6 +89,7 @@ export default function App() {
 
   const { ready, execute, reset, runIsolated, loadError, schemaVersion } =
     useSqlEngine();
+  const { messages, streaming, send, clear } = useChat();
   const {
     markTaskComplete,
     markLessonComplete,
@@ -111,8 +102,10 @@ export default function App() {
 
   const currentTask =
     lesson.tasks.length > 0 ? lesson.tasks[currentTaskIndex] : null;
-  const lessonRowRef = useRef<HTMLDivElement>(null);
+
+  const lessonPaneRef = useRef<HTMLDivElement>(null);
   const advanceTimer = useRef<number | undefined>(undefined);
+  const prevStreaming = useRef(false);
 
   useEffect(() => {
     window.clearTimeout(advanceTimer.current);
@@ -121,9 +114,6 @@ export default function App() {
     setQuery(lesson.defaultQuery);
     setResponse(null);
     setLastExecuted(null);
-    setLessonCollapsed(false);
-    setEditorCollapsed(false);
-    setEditorFullscreen(false);
     setFeedback(null);
     setFailCount(0);
   }, [lesson, ready, reset]);
@@ -137,10 +127,32 @@ export default function App() {
   }, [lesson.id]);
 
   useEffect(() => {
-    if (lessonRowRef.current) {
-      lessonRowRef.current.scrollTop = 0;
-    }
+    if (lessonPaneRef.current) lessonPaneRef.current.scrollTop = 0;
   }, [lesson.id]);
+
+  useEffect(() => {
+    if (prevStreaming.current && !streaming && topTab !== "assistant") {
+      setAssistantUnread(true);
+    }
+    prevStreaming.current = streaming;
+  }, [streaming, topTab]);
+
+  useEffect(() => {
+    if (topTab === "assistant") setAssistantUnread(false);
+  }, [topTab]);
+
+  const liveSchema = useMemo(
+    () => (ready ? readSchema(execute) : []),
+    [ready, lesson, response, execute, schemaVersion],
+  );
+
+  const schemaText = useMemo(
+    () =>
+      liveSchema
+        .map((t) => `${t.name}(${t.columns.map((c) => c.name).join(", ")})`)
+        .join(", "),
+    [liveSchema],
+  );
 
   const handleRun = () => {
     if (!query.trim()) {
@@ -150,11 +162,13 @@ export default function App() {
         executionTimeMs: 0,
       });
       setFeedback(null);
+      setBottomTab("results");
       return;
     }
     setLastExecuted(query);
     setResponse(execute(query));
     setFeedback(null);
+    setBottomTab("results");
   };
 
   const handleReset = () => {
@@ -167,17 +181,15 @@ export default function App() {
   };
 
   const handleShowSchema = () => {
+    setLastExecuted(SCHEMA_QUERY);
     setResponse(execute(SCHEMA_QUERY));
-    setFeedback(null);
+    setBottomTab("results");
   };
 
   const handleCheckAnswer = () => {
     if (!currentTask || !response) return;
-
     let result;
-
     if (currentTask.probeQuery) {
-      // Mutation task — use isolated validation
       result = validateMutation(
         DATABASE.seedSql,
         query,
@@ -186,9 +198,6 @@ export default function App() {
         runIsolated,
       );
     } else {
-      // Query task — run BOTH queries on a fresh copy of the database.
-      // "SELECT 1;" is a harmless no-op; the last argument is the query
-      // whose result we want back.
       const studentRes = asResponse(
         runIsolated(DATABASE.seedSql, "SELECT 1;", query),
       );
@@ -223,9 +232,9 @@ export default function App() {
     }
 
     requestAnimationFrame(() => {
-      if (lessonRowRef.current) {
-        lessonRowRef.current.scrollTo({
-          top: lessonRowRef.current.scrollHeight,
+      if (lessonPaneRef.current) {
+        lessonPaneRef.current.scrollTo({
+          top: lessonPaneRef.current.scrollHeight,
           behavior: "smooth",
         });
       }
@@ -239,11 +248,6 @@ export default function App() {
     setFailCount(0);
   };
 
-  const handleShowLesson = () => {
-    setLessonCollapsed(false);
-    setResponse(null);
-  };
-
   const lessonIndex = lessons.findIndex((l) => l.id === lesson.id);
   const hasPrevLesson = lessonIndex > 0;
   const hasNextLesson = lessonIndex < lessons.length - 1;
@@ -252,26 +256,12 @@ export default function App() {
   const goToPrevLesson = () => {
     if (hasPrevLesson) setLesson(lessons[lessonIndex - 1]);
   };
+
   const goToNextLesson = () => {
     if (!hasNextLesson || !canGoToNext) return;
-    if (lesson.tasks.length === 0) {
-      markLessonComplete(lesson.id);
-    }
+    if (lesson.tasks.length === 0) markLessonComplete(lesson.id);
     setLesson(lessons[lessonIndex + 1]);
   };
-
-  const liveSchema = useMemo(
-    () => (ready ? readSchema(execute) : []),
-    [ready, lesson, response, execute, schemaVersion],
-  );
-
-  const schemaText = useMemo(
-    () =>
-      liveSchema
-        .map((t) => `${t.name}(${t.columns.map((c) => c.name).join(", ")})`)
-        .join(", "),
-    [liveSchema],
-  );
 
   const chatContext: ChatContext = useMemo(
     () => ({
@@ -294,10 +284,15 @@ export default function App() {
       response,
       currentTask,
       currentTaskIndex,
-      schemaText,
       lastExecuted,
+      schemaText,
     ],
   );
+
+  const handleSend = (text: string) => {
+    setTopTab("assistant");
+    send(text, chatContext);
+  };
 
   if (loadError) {
     return (
@@ -308,126 +303,160 @@ export default function App() {
     );
   }
 
-  const bodyClass = [
-    "app-body",
-    editorFullscreen ? "editor-fullscreen" : "",
-    chatCollapsed && !editorFullscreen ? "chat-collapsed" : "",
-    response ? "has-results" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const mainClass = [
-    "main-area",
-    lessonCollapsed ? "lesson-collapsed" : "",
-    editorCollapsed ? "editor-collapsed" : "",
-    response ? "has-results" : "no-results",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const resultMeta = response
+    ? response.error
+      ? "Error"
+      : response.results.length === 0
+        ? "No rows"
+        : `${response.results[0].values.length} row${
+            response.results[0].values.length === 1 ? "" : "s"
+          } · ${response.executionTimeMs.toFixed(1)} ms`
+    : null;
 
   const completedCount = completedLessonsCount(lessons);
   const totalCount = totalLessonsCount(lessons);
 
   return (
-    <div
-      className={`app-shell${editorFullscreen ? " app-shell--fullscreen" : ""}`}
-    >
-      <Header
-        currentLesson={lesson}
-        onSelectLesson={setLesson}
-        completedLessons={completedCount}
-        totalLessons={totalCount}
-        isLessonComplete={isLessonComplete}
-        onResetProgress={resetProgress}
-      />
-
-      <div className={bodyClass}>
-        <main className={mainClass}>
-          <div className="lesson-row" ref={lessonRowRef}>
-            <LessonPanel
+    <div className="app-shell">
+      <div className="app-body" data-top={topTab}>
+        <div className="lesson-pane" ref={lessonPaneRef}>
+          <Header
+            currentLesson={lesson}
+            onSelectLesson={setLesson}
+            completedLessons={completedCount}
+            totalLessons={totalCount}
+            isLessonComplete={isLessonComplete}
+            onResetProgress={resetProgress}
+          />
+          <LessonPanel lesson={lesson} database={DATABASE}>
+            <TaskFooter
               lesson={lesson}
-              database={DATABASE}
-              collapsed={lessonCollapsed}
-              onToggle={() => {
-                if (lessonCollapsed) handleShowLesson();
-                else setLessonCollapsed(true);
-              }}
-            >
-              <TaskFooter
-                lesson={lesson}
-                currentTaskIndex={currentTaskIndex}
-                isTaskComplete={(taskId) => isTaskComplete(lesson.id, taskId)}
-                canCheck={!!response && !!currentTask}
-                failCount={failCount}
-                feedback={feedback}
-                onCheckAnswer={handleCheckAnswer}
-                onJumpToTask={handleJumpToTask}
-                hasPrevLesson={hasPrevLesson}
-                hasNextLesson={hasNextLesson}
-                canGoToNext={canGoToNext}
-                onPrevLesson={goToPrevLesson}
-                onNextLesson={goToNextLesson}
-                isCurrentLessonComplete={isLessonComplete(lesson)}
-                onMarkComplete={() => markLessonComplete(lesson.id)}
-              />
-            </LessonPanel>
-          </div>
+              currentTaskIndex={currentTaskIndex}
+              isTaskComplete={(taskId) => isTaskComplete(lesson.id, taskId)}
+              canCheck={!!response && !!currentTask}
+              failCount={failCount}
+              feedback={feedback}
+              onCheckAnswer={handleCheckAnswer}
+              onJumpToTask={handleJumpToTask}
+              hasPrevLesson={hasPrevLesson}
+              hasNextLesson={hasNextLesson}
+              canGoToNext={canGoToNext}
+              onPrevLesson={goToPrevLesson}
+              onNextLesson={goToNextLesson}
+              isCurrentLessonComplete={isLessonComplete(lesson)}
+              onMarkComplete={() => markLessonComplete(lesson.id)}
+            />
+          </LessonPanel>
+        </div>
 
-          {!editorCollapsed ? (
-            <div className="workzone-row">
-              <div className="editor-row">
-                <SqlEditor
-                  value={query}
-                  onChange={setQuery}
-                  onRun={handleRun}
-                  onReset={handleReset}
-                  disabled={!ready}
-                  schema={liveSchema}
-                  onShowSchema={handleShowSchema}
-                  lessonCollapsed={lessonCollapsed}
-                  onToggleLesson={() => {
-                    if (lessonCollapsed) handleShowLesson();
-                    else setLessonCollapsed(true);
-                  }}
-                  fullscreen={editorFullscreen}
-                  onToggleFullscreen={() => setEditorFullscreen((v) => !v)}
-                  onCollapse={() => setEditorCollapsed(true)}
-                  onFocus={() => {
-                    if (window.innerWidth < 900 && !editorFullscreen) {
-                      setEditorFullscreen(true);
-                    }
-                  }}
-                />
-              </div>
-
-              {response && (
-                <div className="results-row">
-                  <ResultTable
-                    response={response}
-                    onHide={() => setResponse(null)}
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
+        <div className="work-pane">
+          <div className="pane-tabs" role="tablist" aria-label="Workspace">
             <button
-              className="editor-strip"
-              onClick={() => setEditorCollapsed(false)}
+              role="tab"
+              aria-selected={topTab === "editor"}
+              className={`pane-tab${topTab === "editor" ? " active" : ""}`}
+              onClick={() => setTopTab("editor")}
               type="button"
             >
-              <span className="strip-chevron">▶</span>
-              <span className="strip-label">Show SQL editor</span>
+              Code editor
             </button>
-          )}
-        </main>
+            <button
+              role="tab"
+              aria-selected={topTab === "assistant"}
+              className={`pane-tab${topTab === "assistant" ? " active" : ""}`}
+              onClick={() => setTopTab("assistant")}
+              type="button"
+            >
+              Assistant
+              {(streaming || assistantUnread) && topTab !== "assistant" && (
+                <span className="tab-dot" aria-hidden="true" />
+              )}
+            </button>
+            <div className="pane-tabs-extra">
+              {topTab === "assistant" && (
+                <>
+                  {streaming && <span className="chat-status">thinking…</span>}
+                  {messages.length > 0 && !streaming && (
+                    <button
+                      className="chat-clear-btn"
+                      onClick={clear}
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
 
-        <ChatPanel
-          context={chatContext}
-          collapsed={chatCollapsed}
-          hidden={editorFullscreen}
-          onToggle={() => setChatCollapsed((v) => !v)}
-        />
+          <div className="work-top">
+            <div className="tab-panel" hidden={topTab !== "editor"}>
+              <SqlEditor
+                value={query}
+                onChange={setQuery}
+                onRun={handleRun}
+                onReset={handleReset}
+                disabled={!ready}
+                schema={liveSchema}
+                onShowSchema={handleShowSchema}
+              />
+            </div>
+            <div className="tab-panel" hidden={topTab !== "assistant"}>
+              <ChatPanel
+                messages={messages}
+                streaming={streaming}
+                active={topTab === "assistant"}
+                onSend={handleSend}
+              />
+            </div>
+          </div>
+
+          <div
+            className="pane-tabs pane-tabs-output"
+            role="tablist"
+            aria-label="Output"
+          >
+            <button
+              role="tab"
+              aria-selected={bottomTab === "results"}
+              className={`pane-tab${bottomTab === "results" ? " active" : ""}`}
+              onClick={() => setBottomTab("results")}
+              type="button"
+            >
+              Query results
+            </button>
+            <button
+              role="tab"
+              aria-selected={bottomTab === "database"}
+              className={`pane-tab${bottomTab === "database" ? " active" : ""}`}
+              onClick={() => setBottomTab("database")}
+              type="button"
+            >
+              Database
+            </button>
+            <div className="pane-tabs-extra">
+              {bottomTab === "results" && resultMeta && (
+                <span className="result-meta">{resultMeta}</span>
+              )}
+              {bottomTab === "database" && (
+                <span className="result-meta">
+                  {liveSchema.length}{" "}
+                  {liveSchema.length === 1 ? "table" : "tables"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="work-bottom">
+            <div className="tab-panel" hidden={bottomTab !== "results"}>
+              <ResultTable response={response} />
+            </div>
+            <div className="tab-panel" hidden={bottomTab !== "database"}>
+              <DatabaseTab schema={liveSchema} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

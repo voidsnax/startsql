@@ -1,34 +1,16 @@
-import type { ReactNode } from 'react';
-import type { Lesson } from '../data/lessons';
-import type { DatabaseDef } from '../data/schemas';
-import { Markdown } from './Markdown';
-import { SchemaPreview } from './SchemaPreview';
+import type { ReactNode } from "react";
+import type { Lesson } from "../data/lessons";
+import type { DatabaseDef } from "../data/schemas";
+import { Markdown } from "./Markdown";
+import { SchemaPreview } from "./SchemaPreview";
 
 interface Props {
   lesson: Lesson;
   database: DatabaseDef;
-  collapsed: boolean;
-  onToggle: () => void;
   children?: ReactNode;
 }
 
-export function LessonPanel({ lesson, database, collapsed, onToggle, children }: Props) {
-  if (collapsed) {
-    return (
-      <button
-        className="lesson-panel-collapsed"
-        onClick={onToggle}
-        type="button"
-        aria-label="Expand lesson"
-      >
-        <span className="lesson-collapsed-chevron">▶</span>
-        <span className="lesson-collapsed-eyebrow">Lesson {lesson.number}</span>
-        <span className="lesson-collapsed-title">{lesson.title}</span>
-        <span className="lesson-collapsed-hint">Show lesson</span>
-      </button>
-    );
-  }
-
+export function LessonPanel({ lesson, database, children }: Props) {
   const showSchema = lesson.showSchema === true;
 
   return (
