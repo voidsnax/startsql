@@ -79,6 +79,7 @@ export default function App() {
   const [topTab, setTopTab] = useState<TopTab>("editor");
   const [bottomTab, setBottomTab] = useState<BottomTab>("results");
   const [assistantUnread, setAssistantUnread] = useState(false);
+  const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
 
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [failCount, setFailCount] = useState(0);
@@ -317,17 +318,23 @@ export default function App() {
   const totalCount = totalLessonsCount(lessons);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-view={mobileView}>
+      <Header
+        currentLesson={lesson}
+        onSelectLesson={(l) => {
+          setLesson(l);
+          setMobileView("lesson");
+        }}
+        completedLessons={completedCount}
+        totalLessons={totalCount}
+        isLessonComplete={isLessonComplete}
+        onResetProgress={resetProgress}
+        mobileView={mobileView}
+        onMobileViewChange={setMobileView}
+        practiceDot={assistantUnread}
+      />
       <div className="app-body" data-top={topTab}>
         <div className="lesson-pane" ref={lessonPaneRef}>
-          <Header
-            currentLesson={lesson}
-            onSelectLesson={setLesson}
-            completedLessons={completedCount}
-            totalLessons={totalCount}
-            isLessonComplete={isLessonComplete}
-            onResetProgress={resetProgress}
-          />
           <LessonPanel lesson={lesson} database={DATABASE}>
             <TaskFooter
               lesson={lesson}

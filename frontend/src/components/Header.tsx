@@ -2,6 +2,8 @@ import { lessons } from "../data/lessons";
 import type { Lesson } from "../data/lessons";
 import { Logo } from "./Logo";
 
+export type MobileView = "lesson" | "practice";
+
 interface Props {
   currentLesson: Lesson;
   onSelectLesson: (lesson: Lesson) => void;
@@ -9,6 +11,9 @@ interface Props {
   totalLessons: number;
   isLessonComplete: (lesson: Lesson) => boolean;
   onResetProgress: () => void;
+  mobileView: MobileView;
+  onMobileViewChange: (view: MobileView) => void;
+  practiceDot: boolean;
 }
 
 export function Header({
@@ -18,9 +23,36 @@ export function Header({
   totalLessons,
   isLessonComplete,
   onResetProgress,
+  mobileView,
+  onMobileViewChange,
+  practiceDot,
 }: Props) {
   return (
     <header className="lesson-topbar">
+      <div className="view-switch" role="tablist" aria-label="View">
+        <button
+          role="tab"
+          aria-selected={mobileView === "lesson"}
+          className={`view-switch-btn${mobileView === "lesson" ? " active" : ""}`}
+          onClick={() => onMobileViewChange("lesson")}
+          type="button"
+        >
+          Lesson
+        </button>
+        <button
+          role="tab"
+          aria-selected={mobileView === "practice"}
+          className={`view-switch-btn${mobileView === "practice" ? " active" : ""}`}
+          onClick={() => onMobileViewChange("practice")}
+          type="button"
+        >
+          Practice
+          {practiceDot && mobileView === "lesson" && (
+            <span className="tab-dot" aria-hidden="true" />
+          )}
+        </button>
+      </div>
+
       <div className="app-logo">
         <Logo size={28} />
         <div className="logo-text-group">
