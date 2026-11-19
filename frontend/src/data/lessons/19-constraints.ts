@@ -7,7 +7,6 @@ const lesson: Lesson = {
   subtitle: 'Rules that protect your data',
   defaultQuery:
     "CREATE TABLE employees (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL,\n  email TEXT UNIQUE,\n  department TEXT DEFAULT 'General',\n  salary INTEGER CHECK(salary >= 0)\n);",
-  showSchema: true,
   didYouKnow: `Constraints run *inside* the database engine, so they can't be bypassed by a buggy app. Even if your code forgets to validate, the database rejects bad data. This is called "defense in depth" — the app validates, and the database validates again.`,
   content: `Constraints are rules attached to columns. They prevent bad data from ever entering the table.
 
