@@ -847,12 +847,12 @@
 }
 
 .result-error {
-  justify-content: flex-start;
+  display: block;
   text-align: left;
-  gap: 6px;
   color: var(--danger);
   background: var(--danger-wash);
   font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
 .result-success {
@@ -1081,7 +1081,7 @@
 /* Same accent as the open panel, but quieter — brightens on hover,
    comes fully alive only when the panel expands. */
 .chat-strip::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1509,18 +1509,13 @@
     flex-direction: row;
     gap: 0;
     padding: 0;
-    background: linear-gradient(
-      135deg,
-      var(--brand) 0%,
-      #7c5cf0 55%,
-      var(--info) 135%
-    );
+    background: linear-gradient(135deg, #741e98 0%, #0a82a0 100%);
     color: var(--fg-on-brand);
     border: none;
     border-radius: 50%;
     box-shadow:
       0 4px 14px rgba(0, 0, 0, 0.35),
-      0 2px 12px rgba(99, 102, 241, 0.45);
+      0 2px 12px rgba(56, 189, 248, 0.35);
     animation: none;
   }
 
@@ -1530,12 +1525,7 @@
   }
 
   .chat-strip:hover {
-    background: linear-gradient(
-      135deg,
-      var(--brand-hi) 0%,
-      #8b6ff5 55%,
-      #5cc9f8 135%
-    );
+    background: linear-gradient(135deg, rgb(196, 44, 181) 0%, #21bce3 100%);
     color: var(--fg-on-brand);
   }
 
