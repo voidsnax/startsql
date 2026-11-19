@@ -195,7 +195,7 @@ export function SqlEditor({
       className="editor-codemirror"
       onFocus={() => onFocusChange(true)}
       onBlur={() => onFocusChange(false)}
-      onPointerDown={() => onFocusChange(true)}
+      onClickCapture={() => onFocusChange(true)}
     >
       <CodeMirror
         value={value}

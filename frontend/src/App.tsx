@@ -77,7 +77,7 @@ export default function App() {
   const [bottomTab, setBottomTab] = useState<BottomTab>("results");
   const [assistantUnread, setAssistantUnread] = useState(false);
   const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
-  const [editorFocused, setEditorFocused] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [failCount, setFailCount] = useState(0);
@@ -140,21 +140,48 @@ export default function App() {
     if (topTab === "assistant") setAssistantUnread(false);
   }, [topTab]);
 
-  // Mobile browsers hide the keyboard without blurring the editor, so
-  // onBlur alone never fires. Watch the viewport growing back instead.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    let prev = vv.height;
-    const onResize = () => {
-      const delta = vv.height - prev;
-      prev = vv.height;
-      if (delta > 120) setEditorFocused(false);
-    };
-    vv.addEventListener("resize", onResize);
-    return () => vv.removeEventListener("resize", onResize);
-  }, []);
+    const root = document.documentElement;
+    let baseline = vv.height;
+    let lastH = 0;
+    let lastOpen = false;
 
+    const sync = () => {
+      if (vv.scale > 1.02) return; 
+      const h = Math.round(vv.height);
+      if (h > baseline) baseline = h;
+      const open = baseline - h > 120;
+
+      if (h !== lastH) {
+        lastH = h;
+        if (open) root.style.setProperty("--app-h", `${h}px`);
+        else root.style.removeProperty("--app-h");
+      }
+      if (open !== lastOpen) {
+        lastOpen = open;
+        if (!open) setKeyboardOpen(false);
+      }
+    };
+
+    const onOrientation = () => {
+      baseline = vv.height;
+      lastH = 0;
+      lastOpen = false;
+      root.style.removeProperty("--app-h");
+      setKeyboardOpen(false);
+    };
+
+    sync();
+    vv.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", onOrientation);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", onOrientation);
+      root.style.removeProperty("--app-h");
+    };
+  }, []);
   const liveSchema = useMemo(
     () => (ready ? readSchema(execute) : []),
     [ready, lesson, response, execute, schemaVersion],
@@ -171,7 +198,7 @@ export default function App() {
   const endEditing = () => {
     const active = document.activeElement;
     if (active instanceof HTMLElement) active.blur();
-    setEditorFocused(false);
+    setKeyboardOpen(false);
   };
 
   const handleRun = () => {
@@ -351,7 +378,7 @@ export default function App() {
       <div
         className="app-body"
         data-top={topTab}
-        data-editor={editorFocused ? "focused" : "idle"}
+        data-editor={keyboardOpen ? "focused" : "idle"}
       >
         <div className="lesson-pane" ref={lessonPaneRef}>
           <LessonPanel lesson={lesson}>
@@ -447,7 +474,7 @@ export default function App() {
                 onRun={handleRun}
                 disabled={!ready}
                 schema={liveSchema}
-                onFocusChange={setEditorFocused}
+                onFocusChange={setKeyboardOpen}
               />
             </div>
             <div className="tab-panel" hidden={topTab !== "assistant"}>
