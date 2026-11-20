@@ -6,14 +6,43 @@ interface Props {
   messages: ChatMessage[];
   streaming: boolean;
   active: boolean;
+  starters: string[];
   onSend: (text: string) => void;
 }
 
-export function ChatPanel({ messages, streaming, active, onSend }: Props) {
+export function ChatPanel({
+  messages,
+  streaming,
+  active,
+  starters,
+  onSend,
+}: Props) {
   const [input, setInput] = useState("");
   const bodyRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement | null>(null);
+  const tailRef = useRef<HTMLDivElement>(null);
   const prevLen = useRef(0);
+
+  // Reserve only what the newest exchange needs to reach the top, so a
+  // finished reply never leaves an empty block below it.
+  const sizeTail = useCallback(() => {
+    const body = bodyRef.current;
+    const tail = tailRef.current;
+    if (!body || !tail) return;
+    const anchor = anchorRef.current;
+    if (!anchor) {
+      tail.style.height = "0px";
+      return;
+    }
+    const content = body.scrollHeight - tail.offsetHeight;
+    const exchange = content - anchor.offsetTop;
+    const reserve = Math.max(0, body.clientHeight - exchange - 16);
+    tail.style.height = `${reserve}px`;
+  }, []);
+
+  useEffect(() => {
+    sizeTail();
+  }, [messages, active, sizeTail]);
 
   const scrollToLatest = useCallback(() => {
     if (!active) return;
@@ -23,7 +52,6 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
     body.scrollTop = Math.max(0, anchor.offsetTop - 8);
   }, [active]);
 
-  // One scroll per exchange — never while tokens arrive.
   useEffect(() => {
     const grew = messages.length > prevLen.current;
     prevLen.current = messages.length;
@@ -33,6 +61,14 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
   useEffect(() => {
     if (active) scrollToLatest();
   }, [active, scrollToLatest]);
+
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => sizeTail());
+    ro.observe(body);
+    return () => ro.disconnect();
+  }, [sizeTail]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -50,8 +86,22 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
           <div className="chat-empty">
             <p className="chat-empty-title">I'm here if you get stuck.</p>
             <p className="chat-empty-sub">
-              Try a task on the left. If something doesn't work, ask me why.
+              I can see your lesson, your tables, and the query you ran. Pick a
+              starting point or ask your own.
             </p>
+            <div className="chat-starters">
+              {starters.map((s) => (
+                <button
+                  key={s}
+                  className="chat-starter"
+                  onClick={() => onSend(s)}
+                  disabled={streaming}
+                  type="button"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((m, i) => (
@@ -64,14 +114,20 @@ export function ChatPanel({ messages, streaming, active, onSend }: Props) {
               m.content ? (
                 <Markdown>{m.content}</Markdown>
               ) : (
-                <span className="chat-typing">…</span>
+                <span className="chat-typing" aria-label="Assistant is typing">
+                  <i />
+                  <i />
+                  <i />
+                </span>
               )
             ) : (
               m.content
             )}
           </div>
         ))}
-        {messages.length > 0 && <div className="chat-tail" aria-hidden="true" />}
+        {messages.length > 0 && (
+          <div className="chat-tail" ref={tailRef} aria-hidden="true" />
+        )}
       </div>
       <div className="chat-input-row">
         <textarea

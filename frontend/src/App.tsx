@@ -5,9 +5,9 @@ import { SqlEditor } from "./components/SqlEditor";
 import { ResultTable } from "./components/ResultTable";
 import { ChatPanel } from "./components/ChatPanel";
 import { DatabaseTab } from "./components/DatabaseTab";
+import { TaskFooter } from "./components/TaskFooter";
 import { QuizCard, parseQuiz } from "./components/QuizCard";
 import type { QuizQuestion } from "./components/QuizCard";
-import { TaskFooter } from "./components/TaskFooter";
 import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
 import { DATABASE } from "./data/schemas";
@@ -22,6 +22,38 @@ import { useChat } from "./hooks/useChat";
 import type { ChatContext } from "./hooks/useChat";
 import { validateTask, validateMutation } from "./hooks/useTaskValidator";
 import "./App.css";
+
+const LAST_LESSON_KEY = "startsql:last-lesson";
+const SPLIT_KEY = "startsql:split";
+const DEFAULT_SPLIT = 0.55;
+
+function readStored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable — carry on */
+  }
+}
+
+function initialLesson(): Lesson {
+  const id = readStored(LAST_LESSON_KEY);
+  return lessons.find((l) => l.id === id) ?? lessons[0];
+}
+
+function initialSplit(): number {
+  const raw = Number(readStored(SPLIT_KEY));
+  return Number.isFinite(raw) && raw >= 0.25 && raw <= 0.75
+    ? raw
+    : DEFAULT_SPLIT;
+}
 
 function formatResultForLLM(response: QueryResponse): string | undefined {
   if (!response || response.error || response.results.length === 0)
@@ -67,9 +99,6 @@ function asResponse(run: IsolatedRun): QueryResponse {
   };
 }
 
-type TopTab = "editor" | "assistant";
-type BottomTab = "results" | "database";
-
 function revealIn(
   pane: HTMLElement | null,
   el: HTMLElement | null,
@@ -89,16 +118,23 @@ function revealIn(
   if (past > 0) pane.scrollBy({ top: past, behavior: "smooth" });
 }
 
+type TopTab = "editor" | "assistant";
+type BottomTab = "results" | "database";
+
 export default function App() {
-  const [lesson, setLesson] = useState<Lesson>(lessons[0]);
-  const [query, setQuery] = useState(lessons[0].defaultQuery);
+  const [lesson, setLesson] = useState<Lesson>(initialLesson);
+  const [query, setQuery] = useState(() => initialLesson().defaultQuery);
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [lastExecuted, setLastExecuted] = useState<string | null>(null);
-  const [topTab, setTopTab] = useState<TopTab>("editor");
+  const [top, setTop] = useState<{ tab: TopTab; split: number }>(() => ({
+    tab: "editor",
+    split: initialSplit(),
+  }));
   const [bottomTab, setBottomTab] = useState<BottomTab>("results");
   const [assistantUnread, setAssistantUnread] = useState(false);
   const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   const [aiHint, setAiHint] = useState<string | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
   const [usedStaticHint, setUsedStaticHint] = useState(false);
@@ -133,6 +169,8 @@ export default function App() {
   const aiBlockRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const hintRevealed = useRef(false);
+  const workRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ y: number; split: number } | null>(null);
   const advanceTimer = useRef<number | undefined>(undefined);
   const prevStreaming = useRef(false);
 
@@ -166,16 +204,19 @@ export default function App() {
   }, [lesson.id]);
 
   useEffect(() => {
-    if (prevStreaming.current && !streaming && topTab !== "assistant") {
+    if (prevStreaming.current && !streaming && top.tab !== "assistant") {
       setAssistantUnread(true);
     }
     prevStreaming.current = streaming;
-  }, [streaming, topTab]);
+  }, [streaming, top.tab]);
 
   useEffect(() => {
-    if (topTab === "assistant") setAssistantUnread(false);
-  }, [topTab]);
+    if (top.tab === "assistant") setAssistantUnread(false);
+  }, [top.tab]);
 
+  // Focus/click already collapses the output before the keyboard rises.
+  // This listener only detects closing, and feeds the visible height to CSS
+  // so iOS Safari — which never shrinks the layout viewport — shrinks too.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -224,6 +265,14 @@ export default function App() {
     revealIn(lessonPaneRef.current, aiBlockRef.current, "start");
   }, [quizLoading, quiz, quizError]);
 
+  useEffect(() => {
+    writeStored(LAST_LESSON_KEY, lesson.id);
+  }, [lesson.id]);
+
+  useEffect(() => {
+    writeStored(SPLIT_KEY, top.split.toFixed(3));
+  }, [top.split]);
+
   const liveSchema = useMemo(
     () => (ready ? readSchema(execute) : []),
     [ready, lesson, response, execute, schemaVersion],
@@ -236,6 +285,24 @@ export default function App() {
         .join(", "),
     [liveSchema],
   );
+
+  const chatStarters = useMemo(() => {
+    const out: string[] = [];
+    if (response?.error) {
+      out.push("My query failed — what does this error mean?");
+    } else {
+      out.push(`Explain "${lesson.title}" in one short paragraph.`);
+    }
+    if (currentTask) {
+      out.push(
+        `Nudge me on task ${currentTaskIndex + 1} — don't give the answer.`,
+      );
+    } else if (liveSchema.length > 0) {
+      out.push(`Show a small example using the ${liveSchema[0].name} table.`);
+    }
+    out.push("What mistakes do beginners make in this lesson?");
+    return out.slice(0, 3);
+  }, [response, lesson.title, currentTask, currentTaskIndex, liveSchema]);
 
   const endEditing = () => {
     const active = document.activeElement;
@@ -381,7 +448,6 @@ export default function App() {
   const staticHintVisible =
     !!currentTask?.hint && (usedStaticHint || failCount >= 3);
 
-  // Reveal a hint once, and only if it landed below the fold.
   useEffect(() => {
     if (!staticHintVisible && !aiHint) {
       hintRevealed.current = false;
@@ -418,7 +484,7 @@ export default function App() {
   const handleReview = () => {
     if (!query.trim() || streaming) return;
     endEditing();
-    setTopTab("assistant");
+    setTop({ tab: "assistant", split: top.split });
     send("Review the SQL currently in my editor.", chatContext, "review");
   };
 
@@ -445,9 +511,41 @@ export default function App() {
   };
 
   const handleSend = (text: string) => {
-    setTopTab("assistant");
+    setTop({ tab: "assistant", split: top.split });
     send(text, chatContext);
   };
+
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const box = workRef.current?.getBoundingClientRect();
+    if (!box) return;
+    dragRef.current = { y: e.clientY, split: top.split };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const moveDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const box = workRef.current?.getBoundingClientRect();
+    if (!drag || !box || box.height < 200) return;
+    e.preventDefault();
+    const next = drag.split + (e.clientY - drag.y) / box.height;
+    setTop((t) => ({
+      ...t,
+      split: Math.min(0.75, Math.max(0.25, next)),
+    }));
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const nudgeSplit = (delta: number) =>
+    setTop((t) => ({
+      ...t,
+      split: Math.min(0.75, Math.max(0.25, t.split + delta)),
+    }));
 
   if (loadError) {
     return (
@@ -489,7 +587,7 @@ export default function App() {
       />
       <div
         className="app-body"
-        data-top={topTab}
+        data-top={top.tab}
         data-editor={keyboardOpen ? "focused" : "idle"}
       >
         <div className="lesson-pane" ref={lessonPaneRef}>
@@ -519,7 +617,7 @@ export default function App() {
               <div className="lesson-ai-block" ref={aiBlockRef}>
                 <div className="lesson-ai-row">
                   <button
-                    className="btn-quiz"
+                    className={`btn-quiz${quizLoading ? " is-loading" : ""}`}
                     onClick={handleQuiz}
                     disabled={quizLoading}
                     type="button"
@@ -555,31 +653,35 @@ export default function App() {
           </LessonPanel>
         </div>
 
-        <div className="work-pane">
+        <div className="work-pane" ref={workRef}>
           <div className="pane-tabs" role="tablist" aria-label="Workspace">
             <button
               role="tab"
-              aria-selected={topTab === "editor"}
-              className={`pane-tab${topTab === "editor" ? " active" : ""}`}
-              onClick={() => setTopTab("editor")}
+              id="tab-editor"
+              aria-controls="panel-editor"
+              aria-selected={top.tab === "editor"}
+              className={`pane-tab${top.tab === "editor" ? " active" : ""}`}
+              onClick={() => setTop({ tab: "editor", split: top.split })}
               type="button"
             >
               Code editor
             </button>
             <button
               role="tab"
-              aria-selected={topTab === "assistant"}
-              className={`pane-tab${topTab === "assistant" ? " active" : ""}`}
-              onClick={() => setTopTab("assistant")}
+              id="tab-assistant"
+              aria-controls="panel-assistant"
+              aria-selected={top.tab === "assistant"}
+              className={`pane-tab${top.tab === "assistant" ? " active" : ""}`}
+              onClick={() => setTop({ tab: "assistant", split: top.split })}
               type="button"
             >
               Assistant
-              {(streaming || assistantUnread) && topTab !== "assistant" && (
+              {(streaming || assistantUnread) && top.tab !== "assistant" && (
                 <span className="tab-dot" aria-hidden="true" />
               )}
             </button>
             <div className="pane-tabs-extra">
-              {topTab === "editor" ? (
+              {top.tab === "editor" ? (
                 <>
                   <button
                     onClick={handleReview}
@@ -629,8 +731,20 @@ export default function App() {
             </div>
           </div>
 
-          <div className="work-top">
-            <div className="tab-panel" hidden={topTab !== "editor"}>
+          <div
+            className="work-top"
+            style={{
+              flexGrow: top.tab === "assistant" ? 1 : top.split,
+              flexBasis: 0,
+            }}
+          >
+            <div
+              className="tab-panel"
+              id="panel-editor"
+              role="tabpanel"
+              aria-labelledby="tab-editor"
+              hidden={top.tab !== "editor"}
+            >
               <SqlEditor
                 value={query}
                 onChange={setQuery}
@@ -640,15 +754,48 @@ export default function App() {
                 onFocusChange={setKeyboardOpen}
               />
             </div>
-            <div className="tab-panel" hidden={topTab !== "assistant"}>
+            <div
+              className="tab-panel"
+              id="panel-assistant"
+              role="tabpanel"
+              aria-labelledby="tab-assistant"
+              hidden={top.tab !== "assistant"}
+            >
               <ChatPanel
                 messages={messages}
+                starters={chatStarters}
                 streaming={streaming}
-                active={topTab === "assistant"}
+                active={top.tab === "assistant"}
                 onSend={handleSend}
               />
             </div>
           </div>
+
+          <div
+            className="pane-divider"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize the editor and output panes"
+            aria-valuenow={Math.round(top.split * 100)}
+            aria-valuemin={25}
+            aria-valuemax={75}
+            tabIndex={0}
+            title="Drag to resize · double-click to reset"
+            onPointerDown={startDrag}
+            onPointerMove={moveDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onDoubleClick={() => setTop({ tab: top.tab, split: DEFAULT_SPLIT })}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                nudgeSplit(-0.04);
+              } else if (e.key === "ArrowDown") {
+                e.preventDefault();
+                nudgeSplit(0.04);
+              }
+            }}
+          />
 
           <div
             className="pane-tabs pane-tabs-output"
@@ -657,6 +804,8 @@ export default function App() {
           >
             <button
               role="tab"
+              id="tab-results"
+              aria-controls="panel-results"
               aria-selected={bottomTab === "results"}
               className={`pane-tab${bottomTab === "results" ? " active" : ""}`}
               onClick={() => setBottomTab("results")}
@@ -666,6 +815,8 @@ export default function App() {
             </button>
             <button
               role="tab"
+              id="tab-database"
+              aria-controls="panel-database"
               aria-selected={bottomTab === "database"}
               className={`pane-tab${bottomTab === "database" ? " active" : ""}`}
               onClick={() => setBottomTab("database")}
@@ -686,11 +837,26 @@ export default function App() {
             </div>
           </div>
 
-          <div className="work-bottom">
-            <div className="tab-panel" hidden={bottomTab !== "results"}>
+          <div
+            className="work-bottom"
+            style={{ flexGrow: 1 - top.split, flexBasis: 0 }}
+          >
+            <div
+              className="tab-panel"
+              id="panel-results"
+              role="tabpanel"
+              aria-labelledby="tab-results"
+              hidden={bottomTab !== "results"}
+            >
               <ResultTable response={response} />
             </div>
-            <div className="tab-panel" hidden={bottomTab !== "database"}>
+            <div
+              className="tab-panel"
+              id="panel-database"
+              role="tabpanel"
+              aria-labelledby="tab-database"
+              hidden={bottomTab !== "database"}
+            >
               <DatabaseTab schema={liveSchema} />
             </div>
           </div>

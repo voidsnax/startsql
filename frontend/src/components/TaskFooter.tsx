@@ -65,7 +65,7 @@ export function TaskFooter({
             <div className="task-dots">
               {lesson.tasks.map((t, i) => (
                 <button
-                  key={t.id}
+                  key={`${t.id}-${isTaskComplete(t.id) ? "done" : "todo"}`}
                   className={`task-dot${isTaskComplete(t.id) ? " done" : ""}${
                     i === currentTaskIndex ? " current" : ""
                   }`}

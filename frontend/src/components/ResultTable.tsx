@@ -1,11 +1,11 @@
-import type { QueryResponse } from "../hooks/useSqlEngine";
+import type { QueryResponse } from '../hooks/useSqlEngine';
 
 interface Props {
   response: QueryResponse | null;
 }
 
 function formatCell(cell: unknown): string {
-  if (cell === null) return "NULL";
+  if (cell === null) return 'NULL';
   if (cell instanceof Uint8Array) return `[BLOB ${cell.length} bytes]`;
   return String(cell);
 }
@@ -17,8 +17,11 @@ export function ResultTable({ response }: Props) {
         <span className="pane-empty-icon">▶</span>
         <p className="pane-empty-title">No results yet</p>
         <p className="pane-empty-sub">
-          Write a query in the editor and press Run (Ctrl+Enter).
+          Write a query in the editor and press Run.
         </p>
+        <span className="pane-empty-kbd">
+          <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+        </span>
       </div>
     );
   }
@@ -34,14 +37,14 @@ export function ResultTable({ response }: Props) {
   if (response.results.length === 0) {
     return (
       <div className="result-success">
-        ✅ Query executed successfully in {response.executionTimeMs.toFixed(1)}{" "}
-        ms (no rows returned).
+        ✅ Query executed successfully in {response.executionTimeMs.toFixed(1)} ms
+        (no rows returned).
       </div>
     );
   }
 
   return (
-    <div className="result-scroll">
+    <div className="result-scroll" key={response.executionTimeMs}>
       {response.results.map((res, i) => (
         <table key={i}>
           <thead>
