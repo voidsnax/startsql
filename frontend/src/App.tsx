@@ -5,6 +5,8 @@ import { SqlEditor } from "./components/SqlEditor";
 import { ResultTable } from "./components/ResultTable";
 import { ChatPanel } from "./components/ChatPanel";
 import { DatabaseTab } from "./components/DatabaseTab";
+import { QuizCard, parseQuiz } from "./components/QuizCard";
+import type { QuizQuestion } from "./components/QuizCard";
 import { TaskFooter } from "./components/TaskFooter";
 import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
@@ -68,6 +70,25 @@ function asResponse(run: IsolatedRun): QueryResponse {
 type TopTab = "editor" | "assistant";
 type BottomTab = "results" | "database";
 
+function revealIn(
+  pane: HTMLElement | null,
+  el: HTMLElement | null,
+  align: "start" | "nearest",
+) {
+  if (!pane || !el) return;
+  const paneRect = pane.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  if (align === "start") {
+    pane.scrollTo({
+      top: pane.scrollTop + (elRect.top - paneRect.top) - 12,
+      behavior: "smooth",
+    });
+    return;
+  }
+  const past = elRect.bottom - paneRect.bottom + 12;
+  if (past > 0) pane.scrollBy({ top: past, behavior: "smooth" });
+}
+
 export default function App() {
   const [lesson, setLesson] = useState<Lesson>(lessons[0]);
   const [query, setQuery] = useState(lessons[0].defaultQuery);
@@ -78,6 +99,12 @@ export default function App() {
   const [assistantUnread, setAssistantUnread] = useState(false);
   const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [aiHint, setAiHint] = useState<string | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
+  const [usedStaticHint, setUsedStaticHint] = useState(false);
+  const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
 
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [failCount, setFailCount] = useState(0);
@@ -88,7 +115,7 @@ export default function App() {
 
   const { ready, execute, reset, runIsolated, loadError, schemaVersion } =
     useSqlEngine();
-  const { messages, streaming, send, clear } = useChat();
+  const { messages, streaming, send, ask, clear } = useChat();
   const {
     markTaskComplete,
     markLessonComplete,
@@ -103,6 +130,9 @@ export default function App() {
     lesson.tasks.length > 0 ? lesson.tasks[currentTaskIndex] : null;
 
   const lessonPaneRef = useRef<HTMLDivElement>(null);
+  const aiBlockRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
+  const hintRevealed = useRef(false);
   const advanceTimer = useRef<number | undefined>(undefined);
   const prevStreaming = useRef(false);
 
@@ -115,6 +145,12 @@ export default function App() {
     setLastExecuted(null);
     setFeedback(null);
     setFailCount(0);
+    setAiHint(null);
+    setUsedStaticHint(false);
+    setHintLoading(false);
+    setQuiz(null);
+    setQuizError(null);
+    setQuizLoading(false);
   }, [lesson, ready, reset]);
 
   useEffect(() => {
@@ -149,7 +185,7 @@ export default function App() {
     let lastOpen = false;
 
     const sync = () => {
-      if (vv.scale > 1.02) return; 
+      if (vv.scale > 1.02) return;
       const h = Math.round(vv.height);
       if (h > baseline) baseline = h;
       const open = baseline - h > 120;
@@ -182,6 +218,12 @@ export default function App() {
       root.style.removeProperty("--app-h");
     };
   }, []);
+
+  useEffect(() => {
+    if (!quizLoading && !quiz && !quizError) return;
+    revealIn(lessonPaneRef.current, aiBlockRef.current, "start");
+  }, [quizLoading, quiz, quizError]);
+
   const liveSchema = useMemo(
     () => (ready ? readSchema(execute) : []),
     [ready, lesson, response, execute, schemaVersion],
@@ -264,6 +306,8 @@ export default function App() {
           setCurrentTaskIndex((i) => Math.min(i + 1, lesson.tasks.length - 1));
           setFeedback(null);
           setFailCount(0);
+          setAiHint(null);
+          setUsedStaticHint(false);
         }, 1200);
       }
     } else {
@@ -289,6 +333,8 @@ export default function App() {
     setCurrentTaskIndex(idx);
     setFeedback(null);
     setFailCount(0);
+    setAiHint(null);
+    setUsedStaticHint(false);
   };
 
   const lessonIndex = lessons.findIndex((l) => l.id === lesson.id);
@@ -331,6 +377,72 @@ export default function App() {
       schemaText,
     ],
   );
+
+  const staticHintVisible =
+    !!currentTask?.hint && (usedStaticHint || failCount >= 3);
+
+  // Reveal a hint once, and only if it landed below the fold.
+  useEffect(() => {
+    if (!staticHintVisible && !aiHint) {
+      hintRevealed.current = false;
+      return;
+    }
+    if (hintRevealed.current) return;
+    hintRevealed.current = true;
+    revealIn(lessonPaneRef.current, hintRef.current, "nearest");
+  }, [staticHintVisible, aiHint]);
+
+  const handleHint = async () => {
+    if (!currentTask || hintLoading) return;
+    if (currentTask.hint && !staticHintVisible) {
+      setUsedStaticHint(true);
+      return;
+    }
+    setHintLoading(true);
+    setAiHint("");
+    try {
+      await ask("hint", chatContext, (t) =>
+        setAiHint((prev) => (prev ?? "") + t),
+      );
+    } catch (err) {
+      setAiHint(
+        (err as Error).name === "TypeError"
+          ? "Couldn't reach the assistant!"
+          : (err as Error).message,
+      );
+    } finally {
+      setHintLoading(false);
+    }
+  };
+
+  const handleReview = () => {
+    if (!query.trim() || streaming) return;
+    endEditing();
+    setTopTab("assistant");
+    send("Review the SQL currently in my editor.", chatContext, "review");
+  };
+
+  const handleQuiz = async () => {
+    if (quizLoading) return;
+    setQuizLoading(true);
+    setQuizError(null);
+    setQuiz(null);
+    try {
+      const raw = await ask("quiz", chatContext);
+      const parsed = parseQuiz(raw);
+      if (parsed) setQuiz(parsed);
+      else
+        setQuizError("The assistant didn't return a usable quiz. Try again.");
+    } catch (err) {
+      setQuizError(
+        (err as Error).name === "TypeError"
+          ? "Couldn't reach the assistant!"
+          : (err as Error).message,
+      );
+    } finally {
+      setQuizLoading(false);
+    }
+  };
 
   const handleSend = (text: string) => {
     setTopTab("assistant");
@@ -391,6 +503,11 @@ export default function App() {
               feedback={feedback}
               onCheckAnswer={handleCheckAnswer}
               onJumpToTask={handleJumpToTask}
+              staticHintVisible={staticHintVisible}
+              aiHint={aiHint}
+              hintLoading={hintLoading}
+              onHint={handleHint}
+              hintRef={hintRef}
               hasPrevLesson={hasPrevLesson}
               hasNextLesson={hasNextLesson}
               canGoToNext={canGoToNext}
@@ -398,7 +515,43 @@ export default function App() {
               onNextLesson={goToNextLesson}
               isCurrentLessonComplete={isLessonComplete(lesson)}
               onMarkComplete={() => markLessonComplete(lesson.id)}
-            />
+            >
+              <div className="lesson-ai-block" ref={aiBlockRef}>
+                <div className="lesson-ai-row">
+                  <button
+                    className="btn-quiz"
+                    onClick={handleQuiz}
+                    disabled={quizLoading}
+                    type="button"
+                  >
+                    {quizLoading
+                      ? "🎯 Building your quiz…"
+                      : "🎯 Test me on this lesson"}
+                  </button>
+                </div>
+
+                {quizError && (
+                  <div className="quiz-error">
+                    <span>{quizError}</span>
+                    <button
+                      className="btn-secondary"
+                      onClick={handleQuiz}
+                      type="button"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {quiz && (
+                  <QuizCard
+                    questions={quiz}
+                    onClose={() => setQuiz(null)}
+                    onRetry={handleQuiz}
+                  />
+                )}
+              </div>
+            </TaskFooter>
           </LessonPanel>
         </div>
 
@@ -428,6 +581,16 @@ export default function App() {
             <div className="pane-tabs-extra">
               {topTab === "editor" ? (
                 <>
+                  <button
+                    onClick={handleReview}
+                    disabled={!query.trim() || streaming}
+                    className="btn-secondary"
+                    title="Review my SQL"
+                    type="button"
+                  >
+                    <span className="btn-icon">✨</span>
+                    <span className="btn-label">Review</span>
+                  </button>
                   <button
                     onClick={handleReset}
                     className="btn-secondary"

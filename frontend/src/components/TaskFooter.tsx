@@ -1,3 +1,4 @@
+import type { ReactNode, Ref } from "react";
 import type { Lesson } from "../data/lessons";
 
 interface Props {
@@ -9,6 +10,11 @@ interface Props {
   feedback: { status: "success" | "fail"; message: string } | null;
   onCheckAnswer: () => void;
   onJumpToTask: (idx: number) => void;
+  staticHintVisible: boolean;
+  aiHint: string | null;
+  hintLoading: boolean;
+  onHint: () => void;
+  hintRef: Ref<HTMLDivElement>;
   hasPrevLesson: boolean;
   hasNextLesson: boolean;
   canGoToNext: boolean;
@@ -16,6 +22,7 @@ interface Props {
   onNextLesson: () => void;
   isCurrentLessonComplete: boolean;
   onMarkComplete: () => void;
+  children?: ReactNode;
 }
 
 export function TaskFooter({
@@ -27,6 +34,11 @@ export function TaskFooter({
   feedback,
   onCheckAnswer,
   onJumpToTask,
+  staticHintVisible,
+  aiHint,
+  hintLoading,
+  onHint,
+  hintRef,
   hasPrevLesson,
   hasNextLesson,
   canGoToNext,
@@ -34,6 +46,7 @@ export function TaskFooter({
   onNextLesson,
   isCurrentLessonComplete,
   onMarkComplete,
+  children,
 }: Props) {
   const hasTasks = lesson.tasks.length > 0;
   const currentTask = hasTasks ? lesson.tasks[currentTaskIndex] : null;
@@ -49,14 +62,13 @@ export function TaskFooter({
             <span className="task-counter">
               Task {currentTaskIndex + 1} of {lesson.tasks.length}
             </span>
-
             <div className="task-dots">
               {lesson.tasks.map((t, i) => (
                 <button
                   key={t.id}
-                  className={`task-dot${
-                    isTaskComplete(t.id) ? " done" : ""
-                  }${i === currentTaskIndex ? " current" : ""}`}
+                  className={`task-dot${isTaskComplete(t.id) ? " done" : ""}${
+                    i === currentTaskIndex ? " current" : ""
+                  }`}
                   onClick={() => onJumpToTask(i)}
                   title={`Task ${i + 1}`}
                   type="button"
@@ -64,7 +76,6 @@ export function TaskFooter({
                 />
               ))}
             </div>
-
             <button
               className="btn-primary btn-check"
               onClick={onCheckAnswer}
@@ -79,17 +90,35 @@ export function TaskFooter({
 
           <div className="lesson-task-prompt">{currentTask.prompt}</div>
 
+          <div className="task-ai-row">
+            <button
+              className="btn-hint"
+              onClick={onHint}
+              disabled={hintLoading || isTaskComplete(currentTask.id)}
+              type="button"
+            >
+              {hintLoading
+                ? "✨ Thinking…"
+                : staticHintVisible
+                  ? "✨ Another hint (AI)"
+                  : "💡 Hint"}
+            </button>
+          </div>
+
           {feedback && (
             <div className={`task-feedback task-feedback-${feedback.status}`}>
               {feedback.message}
             </div>
           )}
 
-          {failCount >= 3 &&
-            currentTask.hint &&
-            !isTaskComplete(currentTask.id) && (
-              <div className="task-hint">{currentTask.hint}</div>
-            )}
+          {(staticHintVisible || aiHint) && (
+            <div ref={hintRef}>
+              {staticHintVisible && currentTask.hint && (
+                <div className="task-hint">{currentTask.hint}</div>
+              )}
+              {aiHint && <div className="task-hint task-hint-ai">{aiHint}</div>}
+            </div>
+          )}
 
           {failCount >= 4 && !isTaskComplete(currentTask.id) && (
             <div className="task-nudge">
@@ -99,6 +128,8 @@ export function TaskFooter({
           )}
         </div>
       )}
+
+      {children}
 
       {(showNav || showMarkComplete) && (
         <div className="lesson-task-nav">

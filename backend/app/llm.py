@@ -3,13 +3,11 @@ from openai import AsyncOpenAI
 from .config import BASE_URL, GROQ_API_KEY, MODEL_NAME
 
 client = AsyncOpenAI(
-    api_key=GROQ_API_KEY,
-    base_url=BASE_URL,
-    max_retries=3,
-    timeout=60.0
+    api_key=GROQ_API_KEY, base_url=BASE_URL, max_retries=3, timeout=60.0
 )
 
 SYSTEM_PROMPT = r"""You are a patient, friendly SQL tutor for absolute beginners on StartSQL, an in-browser SQL learning site.
+A MODE block may appear at the end of these instructions. When present, its rules override the STYLE and TUTORING sections below.
 
 PLATFORM (fixed facts — never guess or hedge about these):
 - Engine: SQLite, running in the browser via sql.js. Only SQLite syntax will run.
@@ -47,6 +45,63 @@ HARD LIMITS:
 - Never say "if your platform has..." — you know the platform.
 """
 
+MODE_INSTRUCTIONS = {
+    "chat": "",
+    "hint": (
+        "\n\nMODE: HINT. The student is stuck on the task in [CONTEXT]. "
+        "Reply with ONE hint, max 40 words. Name the clause or concept to look at "
+        "and the next step to try. Never write the finished query, never list the "
+        "full column list, never restate the task. No preamble, no follow-up offer."
+    ),
+    "review": (
+        "\n\nMODE: REVIEW. Review the SQL currently in the editor. "
+        "First line: is it correct for the task (or sound, if there is no task)? "
+        "Then at most three short bullets covering correctness, readability, and one "
+        "SQLite-specific improvement. If it is already good, say so plainly and stop. "
+        "Show a corrected snippet only if something is actually wrong. Max 120 words."
+    ),
+    "quiz": (
+        "\n\nMODE: QUIZ. Write exactly 4 multiple-choice questions testing THIS lesson only, "
+        "using the real table and column names from [CONTEXT]. Return ONLY raw JSON — no prose, "
+        "no code fences — in exactly this shape:\n"
+        '{"questions":[{"q":"...","options":["...","...","...","..."],"answer":0,"why":"one sentence"}]}\n'
+        'Rules: 4 options each; "answer" is the 0-based index of the single correct option; '
+        "distractors must be plausible beginner mistakes; questions under 20 words, options under 12; "
+        '"why" explains the correct answer in one sentence. Do not test later lessons.'
+    ),
+}
+
+MODE_SETTINGS = {
+    "chat": {
+        "max_tokens": 600,
+        "reasoning": "low",
+        "temperature": 0.5,
+        "json": False,
+        "content_limit": 800,
+    },
+    "hint": {
+        "max_tokens": 150,
+        "reasoning": "none",
+        "temperature": 0.4,
+        "json": False,
+        "content_limit": 800,
+    },
+    "review": {
+        "max_tokens": 450,
+        "reasoning": "low",
+        "temperature": 0.4,
+        "json": False,
+        "content_limit": 800,
+    },
+    "quiz": {
+        "max_tokens": 850,
+        "reasoning": "low",
+        "temperature": 0.4,
+        "json": True,
+        "content_limit": 3500,
+    },
+}
+
 
 def build_context_prefix(
     lesson_title: str | None,
@@ -60,6 +115,7 @@ def build_context_prefix(
     last_executed_query: str | None,
     last_result: str | None,
     last_error: str | None,
+    content_limit: int = 800,
 ) -> str:
     parts: list[str] = []
 
@@ -67,7 +123,7 @@ def build_context_prefix(
         parts.append(f"Current lesson: {lesson_title}")
 
     if lesson_content:
-        parts.append(f"Lesson content:\n{lesson_content[:800]}")
+        parts.append(f"Lesson content:\n{lesson_content[:content_limit]}")
 
     if schema:
         parts.append(f"Database schema:\n{schema[:800]}")
@@ -133,6 +189,7 @@ def _to_openai_messages(
 
 async def stream_chat(
     messages: list[dict],
+    mode: str = "chat",
     lesson_title: str | None = None,
     lesson_content: str | None = None,
     schema: str | None = None,
@@ -148,6 +205,8 @@ async def stream_chat(
     if not messages:
         raise ValueError("At least one message is required.")
 
+    settings = MODE_SETTINGS.get(mode, MODE_SETTINGS["chat"])
+
     context_prefix = build_context_prefix(
         lesson_title=lesson_title,
         lesson_content=lesson_content,
@@ -160,20 +219,29 @@ async def stream_chat(
         last_executed_query=last_executed_query,
         last_result=last_result,
         last_error=last_error,
+        content_limit=settings["content_limit"],
     )
 
     openai_messages = _to_openai_messages(messages, context_prefix)
 
-    stream = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            *openai_messages, # type: ignore
+    kwargs: dict = {
+        "model": MODEL_NAME,
+        "messages": [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT + MODE_INSTRUCTIONS.get(mode, ""),
+            },
+            *openai_messages,
         ],
-        temperature=0.5,
-        max_completion_tokens=600,
-        stream=True,
-    ) # type: ignore
+        "temperature": settings["temperature"],
+        "max_completion_tokens": settings["max_tokens"],
+        "stream": True,
+        "extra_body": {"reasoning_effort": settings["reasoning"]},
+    }
+    if settings["json"]:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    stream = await client.chat.completions.create(**kwargs)
 
     async for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
