@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Header } from "./components/Header";
+import { Header, ActionBar } from "./components/Header";
+import type { MobileView, ActionBarProps } from "./components/Header";
+import { Icon } from "./components/Icon";
 import { LessonPanel } from "./components/LessonPanel";
 import { SqlEditor } from "./components/SqlEditor";
 import { ResultTable } from "./components/ResultTable";
@@ -39,7 +41,7 @@ function writeStored(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
   } catch {
-    /* storage unavailable — carry on */
+    /* storage unavailable */
   }
 }
 
@@ -132,7 +134,7 @@ export default function App() {
   }));
   const [bottomTab, setBottomTab] = useState<BottomTab>("results");
   const [assistantUnread, setAssistantUnread] = useState(false);
-  const [mobileView, setMobileView] = useState<"lesson" | "practice">("lesson");
+  const [mobileView, setMobileView] = useState<MobileView>("lesson");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const [aiHint, setAiHint] = useState<string | null>(null);
@@ -214,9 +216,6 @@ export default function App() {
     if (top.tab === "assistant") setAssistantUnread(false);
   }, [top.tab]);
 
-  // Focus/click already collapses the output before the keyboard rises.
-  // This listener only detects closing, and feeds the visible height to CSS
-  // so iOS Safari — which never shrinks the layout viewport — shrinks too.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -230,7 +229,6 @@ export default function App() {
       const h = Math.round(vv.height);
       if (h > baseline) baseline = h;
       const open = baseline - h > 120;
-
       if (h !== lastH) {
         lastH = h;
         if (open) root.style.setProperty("--app-h", `${h}px`);
@@ -288,11 +286,9 @@ export default function App() {
 
   const chatStarters = useMemo(() => {
     const out: string[] = [];
-    if (response?.error) {
+    if (response?.error)
       out.push("My query failed — what does this error mean?");
-    } else {
-      out.push(`Explain "${lesson.title}" in one short paragraph.`);
-    }
+    else out.push(`Explain "${lesson.title}" in one short paragraph.`);
     if (currentTask) {
       out.push(
         `Nudge me on task ${currentTaskIndex + 1} — don't give the answer.`,
@@ -310,22 +306,29 @@ export default function App() {
     setKeyboardOpen(false);
   };
 
+  const changeMobileView = (view: MobileView) => {
+    setMobileView(view);
+    if (view === "practice") setTop({ tab: "editor", split: top.split });
+    if (view === "assistant") setTop({ tab: "assistant", split: top.split });
+  };
+
+  const changeTopTab = (tab: TopTab) => {
+    setTop({ tab, split: top.split });
+    setMobileView(tab === "assistant" ? "assistant" : "practice");
+  };
+
   const handleRun = () => {
+    if (!ready || !query.trim()) return;
     endEditing();
-    if (!query.trim()) {
-      setResponse({
-        results: [],
-        error: "Nothing to run — write a query first.",
-        executionTimeMs: 0,
-      });
-      setFeedback(null);
-      setBottomTab("results");
-      return;
-    }
     setLastExecuted(query);
     setResponse(execute(query));
     setFeedback(null);
     setBottomTab("results");
+  };
+
+  const handleClear = () => {
+    setQuery("");
+    setFeedback(null);
   };
 
   const handleReset = () => {
@@ -485,6 +488,7 @@ export default function App() {
     if (!query.trim() || streaming) return;
     endEditing();
     setTop({ tab: "assistant", split: top.split });
+    setMobileView("assistant");
     send("Review the SQL currently in my editor.", chatContext, "review");
   };
 
@@ -512,6 +516,7 @@ export default function App() {
 
   const handleSend = (text: string) => {
     setTop({ tab: "assistant", split: top.split });
+    setMobileView("assistant");
     send(text, chatContext);
   };
 
@@ -528,10 +533,7 @@ export default function App() {
     if (!drag || !box || box.height < 200) return;
     e.preventDefault();
     const next = drag.split + (e.clientY - drag.y) / box.height;
-    setTop((t) => ({
-      ...t,
-      split: Math.min(0.75, Math.max(0.25, next)),
-    }));
+    setTop((t) => ({ ...t, split: Math.min(0.75, Math.max(0.25, next)) }));
   };
 
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -566,8 +568,18 @@ export default function App() {
           } · ${response.executionTimeMs.toFixed(1)} ms`
     : null;
 
-  const completedCount = completedLessonsCount(lessons);
-  const totalCount = totalLessonsCount(lessons);
+  const actionProps: ActionBarProps = {
+    topTab: top.tab,
+    onRun: handleRun,
+    onReset: handleReset,
+    onClear: handleClear,
+    onReview: handleReview,
+    canRun: ready && !!query.trim(),
+    canReview: !!query.trim() && !streaming,
+    streaming,
+    hasMessages: messages.length > 0,
+    onClearChat: clear,
+  };
 
   return (
     <div className="app-shell" data-view={mobileView}>
@@ -577,159 +589,94 @@ export default function App() {
           setLesson(l);
           setMobileView("lesson");
         }}
-        completedLessons={completedCount}
-        totalLessons={totalCount}
+        completedLessons={completedLessonsCount(lessons)}
+        totalLessons={totalLessonsCount(lessons)}
         isLessonComplete={isLessonComplete}
         onResetProgress={resetProgress}
         mobileView={mobileView}
-        onMobileViewChange={setMobileView}
-        practiceDot={assistantUnread}
+        onMobileViewChange={changeMobileView}
+        assistantDot={assistantUnread || streaming}
+        topTab={top.tab}
+        onTopTabChange={changeTopTab}
+        actions={actionProps}
       />
+
       <div
         className="app-body"
         data-top={top.tab}
         data-editor={keyboardOpen ? "focused" : "idle"}
       >
-        <div className="lesson-pane" ref={lessonPaneRef}>
-          <LessonPanel lesson={lesson}>
-            <TaskFooter
-              lesson={lesson}
-              currentTaskIndex={currentTaskIndex}
-              isTaskComplete={(taskId) => isTaskComplete(lesson.id, taskId)}
-              canCheck={!!response && !!currentTask}
-              failCount={failCount}
-              feedback={feedback}
-              onCheckAnswer={handleCheckAnswer}
-              onJumpToTask={handleJumpToTask}
-              staticHintVisible={staticHintVisible}
-              aiHint={aiHint}
-              hintLoading={hintLoading}
-              onHint={handleHint}
-              hintRef={hintRef}
-              hasPrevLesson={hasPrevLesson}
-              hasNextLesson={hasNextLesson}
-              canGoToNext={canGoToNext}
-              onPrevLesson={goToPrevLesson}
-              onNextLesson={goToNextLesson}
-              isCurrentLessonComplete={isLessonComplete(lesson)}
-              onMarkComplete={() => markLessonComplete(lesson.id)}
-            >
-              <div className="lesson-ai-block" ref={aiBlockRef}>
-                <div className="lesson-ai-row">
-                  <button
-                    className={`btn-quiz${quizLoading ? " is-loading" : ""}`}
-                    onClick={handleQuiz}
-                    disabled={quizLoading}
-                    type="button"
-                  >
-                    {quizLoading
-                      ? "🎯 Building your quiz…"
-                      : "🎯 Test me on this lesson"}
-                  </button>
-                </div>
-
-                {quizError && (
-                  <div className="quiz-error">
-                    <span>{quizError}</span>
+        <div className="lesson-pane">
+          <div className="lesson-scroll" ref={lessonPaneRef}>
+            <LessonPanel lesson={lesson}>
+              <TaskFooter
+                lesson={lesson}
+                currentTaskIndex={currentTaskIndex}
+                isTaskComplete={(taskId) => isTaskComplete(lesson.id, taskId)}
+                canCheck={!!response && !!currentTask}
+                failCount={failCount}
+                feedback={feedback}
+                onCheckAnswer={handleCheckAnswer}
+                onJumpToTask={handleJumpToTask}
+                staticHintVisible={staticHintVisible}
+                aiHint={aiHint}
+                hintLoading={hintLoading}
+                onHint={handleHint}
+                hintRef={hintRef}
+                hasPrevLesson={hasPrevLesson}
+                hasNextLesson={hasNextLesson}
+                canGoToNext={canGoToNext}
+                onPrevLesson={goToPrevLesson}
+                onNextLesson={goToNextLesson}
+                isCurrentLessonComplete={isLessonComplete(lesson)}
+                onMarkComplete={() => markLessonComplete(lesson.id)}
+              >
+                <div className="lesson-ai-block" ref={aiBlockRef}>
+                  <div className="lesson-ai-row">
                     <button
-                      className="btn-secondary"
+                      className={`btn-quiz${quizLoading ? " is-loading" : ""}`}
                       onClick={handleQuiz}
+                      disabled={quizLoading}
                       type="button"
                     >
-                      Try again
+                      {quizLoading
+                        ? "🎯 Building your quiz…"
+                        : "🎯 Test me on this lesson"}
                     </button>
                   </div>
-                )}
 
-                {quiz && (
-                  <QuizCard
-                    questions={quiz}
-                    onClose={() => setQuiz(null)}
-                    onRetry={handleQuiz}
-                  />
-                )}
-              </div>
-            </TaskFooter>
-          </LessonPanel>
+                  {quizError && (
+                    <div className="quiz-error">
+                      <span>{quizError}</span>
+                      <button
+                        className="btn-secondary"
+                        onClick={handleQuiz}
+                        type="button"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  )}
+
+                  {quiz && (
+                    <QuizCard
+                      questions={quiz}
+                      onClose={() => setQuiz(null)}
+                      onRetry={handleQuiz}
+                    />
+                  )}
+                </div>
+              </TaskFooter>
+            </LessonPanel>
+          </div>
         </div>
 
         <div className="work-pane" ref={workRef}>
-          <div className="pane-tabs" role="tablist" aria-label="Workspace">
-            <button
-              role="tab"
-              id="tab-editor"
-              aria-controls="panel-editor"
-              aria-selected={top.tab === "editor"}
-              className={`pane-tab${top.tab === "editor" ? " active" : ""}`}
-              onClick={() => setTop({ tab: "editor", split: top.split })}
-              type="button"
-            >
-              Code editor
-            </button>
-            <button
-              role="tab"
-              id="tab-assistant"
-              aria-controls="panel-assistant"
-              aria-selected={top.tab === "assistant"}
-              className={`pane-tab${top.tab === "assistant" ? " active" : ""}`}
-              onClick={() => setTop({ tab: "assistant", split: top.split })}
-              type="button"
-            >
-              Assistant
-              {(streaming || assistantUnread) && top.tab !== "assistant" && (
-                <span className="tab-dot" aria-hidden="true" />
-              )}
-            </button>
-            <div className="pane-tabs-extra">
-              {top.tab === "editor" ? (
-                <>
-                  <button
-                    onClick={handleReview}
-                    disabled={!query.trim() || streaming}
-                    className="btn-secondary"
-                    title="Review my SQL"
-                    type="button"
-                  >
-                    <span className="btn-icon">✨</span>
-                    <span className="btn-label">Review</span>
-                  </button>
-                  <button
-                    onClick={handleReset}
-                    className="btn-secondary"
-                    title="Reset database"
-                    type="button"
-                  >
-                    <span className="btn-icon">↺</span>
-                    <span className="btn-label">Reset DB</span>
-                  </button>
-                  <button
-                    onClick={handleRun}
-                    disabled={!ready}
-                    className="btn-primary"
-                    title="Run query"
-                    type="button"
-                  >
-                    <span className="btn-icon">▶</span>
-                    <span className="btn-label">Run</span>
-                    <kbd>Ctrl+Enter</kbd>
-                  </button>
-                </>
-              ) : (
-                <>
-                  {streaming && <span className="chat-status">thinking…</span>}
-                  {messages.length > 0 && !streaming && (
-                    <button
-                      className="chat-clear-btn"
-                      onClick={clear}
-                      type="button"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </>
-              )}
+          {(top.tab === "editor" || streaming || messages.length > 0) && (
+            <div className="work-actions">
+              <ActionBar {...actionProps} />
             </div>
-          </div>
+          )}
 
           <div
             className="work-top"
@@ -749,7 +696,7 @@ export default function App() {
                 value={query}
                 onChange={setQuery}
                 onRun={handleRun}
-                disabled={!ready}
+                disabled={!ready || !query.trim()}
                 schema={liveSchema}
                 onFocusChange={setKeyboardOpen}
               />
@@ -763,9 +710,9 @@ export default function App() {
             >
               <ChatPanel
                 messages={messages}
-                starters={chatStarters}
                 streaming={streaming}
                 active={top.tab === "assistant"}
+                starters={chatStarters}
                 onSend={handleSend}
               />
             </div>
@@ -811,6 +758,7 @@ export default function App() {
               onClick={() => setBottomTab("results")}
               type="button"
             >
+              <Icon name="table" size={14} />
               Query results
             </button>
             <button
@@ -822,6 +770,7 @@ export default function App() {
               onClick={() => setBottomTab("database")}
               type="button"
             >
+              <Icon name="database" size={14} />
               Database
             </button>
             <div className="pane-tabs-extra">
