@@ -21,10 +21,9 @@ export function ChatPanel({
   const bodyRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const tailRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const prevLen = useRef(0);
 
-  // Reserve only what the newest exchange needs to reach the top, so a
-  // finished reply never leaves an empty block below it.
   const sizeTail = useCallback(() => {
     const body = bodyRef.current;
     const tail = tailRef.current;
@@ -43,6 +42,13 @@ export function ChatPanel({
   useEffect(() => {
     sizeTail();
   }, [messages, active, sizeTail]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 92)}px`;
+  }, [input]);
 
   const scrollToLatest = useCallback(() => {
     if (!active) return;
@@ -121,7 +127,7 @@ export function ChatPanel({
                 </span>
               )
             ) : (
-              m.content
+              <Markdown>{m.content}</Markdown>
             )}
           </div>
         ))}
@@ -131,6 +137,7 @@ export function ChatPanel({
       </div>
       <div className="chat-input-row">
         <textarea
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -140,12 +147,12 @@ export function ChatPanel({
             }
           }}
           placeholder="Ask any questions…"
-          rows={2}
+          rows={1}
         />
         <button
           onClick={handleSend}
           disabled={streaming || !input.trim()}
-          className="btn-primary"
+          className="btn-primary chat-send"
           type="button"
         >
           Send

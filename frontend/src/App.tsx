@@ -10,6 +10,7 @@ import { DatabaseTab } from "./components/DatabaseTab";
 import { TaskFooter } from "./components/TaskFooter";
 import { QuizCard, parseQuiz } from "./components/QuizCard";
 import type { QuizQuestion } from "./components/QuizCard";
+import { LESSON_QUIZZES } from "./data/quizzes";
 import { lessons } from "./data/lessons";
 import type { Lesson } from "./data/lessons";
 import { DATABASE } from "./data/schemas";
@@ -101,23 +102,20 @@ function asResponse(run: IsolatedRun): QueryResponse {
   };
 }
 
-function revealIn(
-  pane: HTMLElement | null,
-  el: HTMLElement | null,
-  align: "start" | "nearest",
-) {
+function revealIn(pane: HTMLElement | null, el: HTMLElement | null, pad = 12) {
   if (!pane || !el) return;
-  const paneRect = pane.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  if (align === "start") {
+  const p = pane.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const alignTop = pane.scrollTop + (r.top - p.top) - pad;
+  const showBottom = pane.scrollTop + (r.bottom - p.bottom) + pad;
+  if (r.top < p.top + pad) {
+    pane.scrollTo({ top: Math.max(0, alignTop), behavior: "smooth" });
+  } else if (r.bottom > p.bottom - pad) {
     pane.scrollTo({
-      top: pane.scrollTop + (elRect.top - paneRect.top) - 12,
+      top: Math.max(0, Math.min(showBottom, alignTop)),
       behavior: "smooth",
     });
-    return;
   }
-  const past = elRect.bottom - paneRect.bottom + 12;
-  if (past > 0) pane.scrollBy({ top: past, behavior: "smooth" });
 }
 
 type TopTab = "editor" | "assistant";
@@ -137,9 +135,10 @@ export default function App() {
   const [mobileView, setMobileView] = useState<MobileView>("lesson");
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  const [hintLevel, setHintLevel] = useState(0);
+  const [hintUnlocked, setHintUnlocked] = useState(true);
   const [aiHint, setAiHint] = useState<string | null>(null);
   const [hintLoading, setHintLoading] = useState(false);
-  const [usedStaticHint, setUsedStaticHint] = useState(false);
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizError, setQuizError] = useState<string | null>(null);
@@ -170,7 +169,10 @@ export default function App() {
   const lessonPaneRef = useRef<HTMLDivElement>(null);
   const aiBlockRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const hintRevealed = useRef(false);
+  const lastFailRef = useRef(0);
+  const lastErrRef = useRef<string | null>(null);
   const workRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ y: number; split: number } | null>(null);
   const advanceTimer = useRef<number | undefined>(undefined);
@@ -185,9 +187,12 @@ export default function App() {
     setLastExecuted(null);
     setFeedback(null);
     setFailCount(0);
+    setHintLevel(0);
+    setHintUnlocked(true);
     setAiHint(null);
-    setUsedStaticHint(false);
     setHintLoading(false);
+    lastFailRef.current = 0;
+    lastErrRef.current = null;
     setQuiz(null);
     setQuizError(null);
     setQuizLoading(false);
@@ -260,8 +265,21 @@ export default function App() {
 
   useEffect(() => {
     if (!quizLoading && !quiz && !quizError) return;
-    revealIn(lessonPaneRef.current, aiBlockRef.current, "start");
+    revealIn(lessonPaneRef.current, aiBlockRef.current);
   }, [quizLoading, quiz, quizError]);
+
+  // A fresh error or another failed check earns the next hint.
+  useEffect(() => {
+    const err = response?.error ?? null;
+    if (
+      failCount > lastFailRef.current ||
+      (err !== null && err !== lastErrRef.current)
+    ) {
+      setHintUnlocked(true);
+    }
+    lastFailRef.current = failCount;
+    lastErrRef.current = err;
+  }, [failCount, response]);
 
   useEffect(() => {
     writeStored(LAST_LESSON_KEY, lesson.id);
@@ -290,9 +308,7 @@ export default function App() {
       out.push("My query failed — what does this error mean?");
     else out.push(`Explain "${lesson.title}" in one short paragraph.`);
     if (currentTask) {
-      out.push(
-        `Nudge me on task ${currentTaskIndex + 1} — don't give the answer.`,
-      );
+      out.push(`Help me think through task ${currentTaskIndex + 1}.`);
     } else if (liveSchema.length > 0) {
       out.push(`Show a small example using the ${liveSchema[0].name} table.`);
     }
@@ -377,7 +393,6 @@ export default function App() {
           setFeedback(null);
           setFailCount(0);
           setAiHint(null);
-          setUsedStaticHint(false);
         }, 1200);
       }
     } else {
@@ -389,12 +404,7 @@ export default function App() {
     }
 
     requestAnimationFrame(() => {
-      if (lessonPaneRef.current) {
-        lessonPaneRef.current.scrollTo({
-          top: lessonPaneRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }
+      revealIn(lessonPaneRef.current, feedbackRef.current);
     });
   };
 
@@ -403,8 +413,11 @@ export default function App() {
     setCurrentTaskIndex(idx);
     setFeedback(null);
     setFailCount(0);
+    setHintLevel(0);
+    setHintUnlocked(true);
     setAiHint(null);
-    setUsedStaticHint(false);
+    lastFailRef.current = 0;
+    lastErrRef.current = null;
   };
 
   const lessonIndex = lessons.findIndex((l) => l.id === lesson.id);
@@ -448,26 +461,25 @@ export default function App() {
     ],
   );
 
-  const staticHintVisible =
-    !!currentTask?.hint && (usedStaticHint || failCount >= 3);
-
   useEffect(() => {
-    if (!staticHintVisible && !aiHint) {
+    if (hintLevel === 0 && !aiHint) {
       hintRevealed.current = false;
       return;
     }
     if (hintRevealed.current) return;
     hintRevealed.current = true;
-    revealIn(lessonPaneRef.current, hintRef.current, "nearest");
-  }, [staticHintVisible, aiHint]);
+    revealIn(lessonPaneRef.current, hintRef.current);
+  }, [hintLevel, aiHint]);
 
   const handleHint = async () => {
-    if (!currentTask || hintLoading) return;
-    if (currentTask.hint && !staticHintVisible) {
-      setUsedStaticHint(true);
+    if (!currentTask || hintLoading || !hintUnlocked) return;
+    if (hintLevel === 0 && currentTask.hint) {
+      setHintLevel(1);
+      setHintUnlocked(false);
       return;
     }
     setHintLoading(true);
+    setHintUnlocked(false);
     setAiHint("");
     try {
       await ask("hint", chatContext, (t) =>
@@ -480,6 +492,7 @@ export default function App() {
           : (err as Error).message,
       );
     } finally {
+      setHintLevel(2);
       setHintLoading(false);
     }
   };
@@ -489,11 +502,21 @@ export default function App() {
     endEditing();
     setTop({ tab: "assistant", split: top.split });
     setMobileView("assistant");
-    send("Review the SQL currently in my editor.", chatContext, "review");
+    send(
+      `Check this query:\n\n\`\`\`sql\n${query.trim()}\n\`\`\``,
+      chatContext,
+      "review",
+    );
   };
 
-  const handleQuiz = async () => {
+  const loadQuiz = async (forceAi = false) => {
     if (quizLoading) return;
+    const authored = LESSON_QUIZZES[lesson.id];
+    if (!forceAi && authored?.length) {
+      setQuiz(authored);
+      setQuizError(null);
+      return;
+    }
     setQuizLoading(true);
     setQuizError(null);
     setQuiz(null);
@@ -618,11 +641,14 @@ export default function App() {
                 feedback={feedback}
                 onCheckAnswer={handleCheckAnswer}
                 onJumpToTask={handleJumpToTask}
-                staticHintVisible={staticHintVisible}
+                authoredHint={currentTask?.hint}
+                hintLevel={hintLevel}
+                hintUnlocked={hintUnlocked}
                 aiHint={aiHint}
                 hintLoading={hintLoading}
                 onHint={handleHint}
                 hintRef={hintRef}
+                feedbackRef={feedbackRef}
                 hasPrevLesson={hasPrevLesson}
                 hasNextLesson={hasNextLesson}
                 canGoToNext={canGoToNext}
@@ -635,12 +661,12 @@ export default function App() {
                   <div className="lesson-ai-row">
                     <button
                       className={`btn-quiz${quizLoading ? " is-loading" : ""}`}
-                      onClick={handleQuiz}
+                      onClick={() => loadQuiz(false)}
                       disabled={quizLoading}
                       type="button"
                     >
                       {quizLoading
-                        ? "🎯 Building your quiz…"
+                        ? "🎯 Building fresh questions…"
                         : "🎯 Test me on this lesson"}
                     </button>
                   </div>
@@ -650,7 +676,7 @@ export default function App() {
                       <span>{quizError}</span>
                       <button
                         className="btn-secondary"
-                        onClick={handleQuiz}
+                        onClick={() => loadQuiz(true)}
                         type="button"
                       >
                         Try again
@@ -662,7 +688,8 @@ export default function App() {
                     <QuizCard
                       questions={quiz}
                       onClose={() => setQuiz(null)}
-                      onRetry={handleQuiz}
+                      onNew={() => loadQuiz(true)}
+                      onReveal={(el) => revealIn(lessonPaneRef.current, el, 20)}
                     />
                   )}
                 </div>

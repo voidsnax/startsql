@@ -1,5 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import type { Lesson } from "../data/lessons";
+import { Inline } from "./Markdown";
+import { Icon } from "./Icon";
 
 interface Props {
   lesson: Lesson;
@@ -10,11 +12,14 @@ interface Props {
   feedback: { status: "success" | "fail"; message: string } | null;
   onCheckAnswer: () => void;
   onJumpToTask: (idx: number) => void;
-  staticHintVisible: boolean;
+  authoredHint?: string;
+  hintLevel: number;
+  hintUnlocked: boolean;
   aiHint: string | null;
   hintLoading: boolean;
   onHint: () => void;
   hintRef: Ref<HTMLDivElement>;
+  feedbackRef: Ref<HTMLDivElement>;
   hasPrevLesson: boolean;
   hasNextLesson: boolean;
   canGoToNext: boolean;
@@ -34,11 +39,14 @@ export function TaskFooter({
   feedback,
   onCheckAnswer,
   onJumpToTask,
-  staticHintVisible,
+  authoredHint,
+  hintLevel,
+  hintUnlocked,
   aiHint,
   hintLoading,
   onHint,
   hintRef,
+  feedbackRef,
   hasPrevLesson,
   hasNextLesson,
   canGoToNext,
@@ -53,6 +61,7 @@ export function TaskFooter({
   const showNav = hasPrevLesson || hasNextLesson;
   const showMarkComplete =
     !hasTasks && !hasNextLesson && !isCurrentLessonComplete;
+  const done = currentTask ? isTaskComplete(currentTask.id) : false;
 
   return (
     <div className="lesson-tasks">
@@ -79,12 +88,17 @@ export function TaskFooter({
             <button
               className="btn-primary btn-check"
               onClick={onCheckAnswer}
-              disabled={!canCheck || isTaskComplete(currentTask.id)}
+              disabled={!canCheck || done}
+              title={
+                done
+                  ? "You have already completed this task"
+                  : canCheck
+                    ? "Compare your result with the expected one"
+                    : "Run a query first"
+              }
               type="button"
             >
-              {isTaskComplete(currentTask.id)
-                ? "✅ Completed"
-                : "✓ Check Answer"}
+              {done ? "✅ Completed" : "✓ Check Answer"}
             </button>
           </div>
 
@@ -94,36 +108,58 @@ export function TaskFooter({
             <button
               className="btn-hint"
               onClick={onHint}
-              disabled={hintLoading || isTaskComplete(currentTask.id)}
+              disabled={!hintUnlocked || hintLoading || done}
+              title={
+                hintUnlocked
+                  ? "Show a hint for this task"
+                  : "Run a query or check again to unlock the next hint"
+              }
               type="button"
             >
-              {hintLoading
-                ? "✨ Thinking…"
-                : staticHintVisible
-                  ? "✨ Another hint (AI)"
-                  : "💡 Hint"}
+              <Icon name={hintLevel === 0 ? "bulb" : "sparkles"} size={14} />
+              {hintLoading ? "Thinking…" : "Hint"}
             </button>
+            {!canCheck && !done && (
+              <span className="check-hint">
+                Run a query first to check your answer.
+              </span>
+            )}
           </div>
 
-          {feedback && (
-            <div className={`task-feedback task-feedback-${feedback.status}`}>
-              {feedback.message}
-            </div>
-          )}
-
-          {(staticHintVisible || aiHint) && (
-            <div ref={hintRef}>
-              {staticHintVisible && currentTask.hint && (
-                <div className="task-hint">{currentTask.hint}</div>
+          {(feedback ||
+            hintLevel >= 1 ||
+            aiHint ||
+            (failCount >= 4 && !done)) && (
+            <div className="task-response" ref={feedbackRef}>
+              {feedback && (
+                <div
+                  className={`task-feedback task-feedback-${feedback.status}`}
+                >
+                  {feedback.message}
+                </div>
               )}
-              {aiHint && <div className="task-hint task-hint-ai">{aiHint}</div>}
-            </div>
-          )}
 
-          {failCount >= 4 && !isTaskComplete(currentTask.id) && (
-            <div className="task-nudge">
-              Tried a few times? Ask the assistant — describe what you tried and
-              what happened.
+              {(hintLevel >= 1 || aiHint) && (
+                <div ref={hintRef}>
+                  {hintLevel >= 1 && authoredHint && (
+                    <div className="task-hint">
+                      <Inline text={authoredHint} />
+                    </div>
+                  )}
+                  {aiHint && (
+                    <div className="task-hint task-hint-ai">
+                      <Inline text={aiHint} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {failCount >= 4 && !done && (
+                <div className="task-nudge">
+                  Still stuck? Ask the Assistant — it already sees your query
+                  and the error.
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -10,7 +10,8 @@ export type IconName =
   | "code"
   | "table"
   | "database"
-  | "chevron";
+  | "chevron"
+  | "bulb";
 
 const PATHS: Record<IconName, ReactNode> = {
   play: <path d="M8 5.4v13.2L19 12z" fill="currentColor" stroke="none" />,
@@ -54,7 +55,7 @@ const PATHS: Record<IconName, ReactNode> = {
   table: (
     <>
       <rect x="3.2" y="4.6" width="17.6" height="14.8" rx="2.2" />
-      <path d="M3.2 9.6h17.6M9.4 9.6v9.8" />
+      <path d="M3.2 9.6h17.6M3.2 14.5h17.6M9.1 9.6v9.8M14.9 9.6v9.8" />
     </>
   ),
   database: (
@@ -65,6 +66,12 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   chevron: <path d="M6.5 9.5l5.5 5.5 5.5-5.5" />,
+  bulb: (
+    <>
+      <path d="M12 3.2a6 6 0 0 0-3.6 10.8c.6.5.9 1.1.9 1.8h5.4c0-.7.3-1.3.9-1.8A6 6 0 0 0 12 3.2z" />
+      <path d="M9.6 18.4h4.8M10.6 21h2.8" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {

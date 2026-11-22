@@ -75,8 +75,8 @@ export function ActionBar({
         className="icon-action accent-warn"
         onClick={onReview}
         disabled={!canReview}
-        title="Review my SQL"
-        aria-label="Review my SQL"
+        title="Check and explain my SQL"
+        aria-label="Check and explain my SQL"
         type="button"
       >
         <Icon name="sparkles" />
@@ -222,9 +222,7 @@ export function Header({
         </div>
 
         <div className="topbar-tail">
-          {(topTab === "editor" ||
-            actions.streaming ||
-            actions.hasMessages) && (
+          {(topTab === "editor" || actions.streaming || actions.hasMessages) && (
             <span className="topbar-sep" aria-hidden="true" />
           )}
           <div className="topbar-actions">
@@ -245,11 +243,9 @@ export function Header({
           >
             <Icon name={s.icon} size={15} />
             {s.label}
-            {s.id === "assistant" &&
-              assistantDot &&
-              mobileView !== "assistant" && (
-                <span className="tab-dot" aria-hidden="true" />
-              )}
+            {s.id === "assistant" && assistantDot && mobileView !== "assistant" && (
+              <span className="tab-dot" aria-hidden="true" />
+            )}
           </button>
         ))}
       </div>

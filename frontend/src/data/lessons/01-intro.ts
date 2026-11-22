@@ -20,7 +20,7 @@ A **schema** is the blueprint: what tables exist and what columns each table has
 
 **SQL** (Structured Query Language) is how we talk to a database. We write a *query*, the database executes it, and returns a result.
 
-Try running the default query below. It fetches every row and every column from the \`students\` table.`,
+The editor on the right already holds your first query. Press **Run** to see every row and every column in the \`students\` table.`,
 };
 
 export default lesson;

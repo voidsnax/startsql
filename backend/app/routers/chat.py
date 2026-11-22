@@ -32,6 +32,8 @@ async def chat(request: Request, chat_request: ChatRequest):
     messages = [m.model_dump() for m in chat_request.messages]
     mode = chat_request.mode
 
+    lesson_title = chat_request.lesson_title
+    lesson_content = chat_request.lesson_content
     task_prompt = chat_request.task_prompt
     task_number = chat_request.task_number
     task_total = chat_request.task_total
@@ -46,14 +48,20 @@ async def chat(request: Request, chat_request: ChatRequest):
         task_prompt = task_number = task_total = None
         editor_query = editor_is_default = None
         last_executed_query = last_result = last_error = None
+    # Review judges the SQL pasted in the message — nothing else.
+    elif mode == "review":
+        lesson_title = lesson_content = None
+        task_prompt = task_number = task_total = None
+        editor_query = None
+        last_executed_query = last_result = last_error = None
 
     async def event_stream():
         try:
             async for chunk in stream_chat(
                 messages=messages,
                 mode=mode,
-                lesson_title=chat_request.lesson_title,
-                lesson_content=chat_request.lesson_content,
+                lesson_title=lesson_title,
+                lesson_content=lesson_content,
                 schema=chat_request.schema,
                 task_prompt=task_prompt,
                 task_number=task_number,
@@ -66,7 +74,7 @@ async def chat(request: Request, chat_request: ChatRequest):
             ):
                 payload = json.dumps({"type": "token", "content": chunk})
                 yield f"data: {payload}\n\n"
-        except Exception as e:  
+        except Exception as e:
             logger.exception("[chat] mode=%s failed", mode)
             payload = json.dumps({"type": "error", "content": _friendly_error(e)})
             yield f"data: {payload}\n\n"
