@@ -43,17 +43,17 @@ async def chat(request: Request, chat_request: ChatRequest):
     last_result = chat_request.last_result
     last_error = chat_request.last_error
 
-    # A quiz tests the lesson, not whatever happens to be in the editor.
     if mode == "quiz":
         task_prompt = task_number = task_total = None
         editor_query = editor_is_default = None
         last_executed_query = last_result = last_error = None
-    # Review judges the SQL pasted in the message — nothing else.
     elif mode == "review":
-        lesson_title = lesson_content = None
+        lesson_title = None
         task_prompt = task_number = task_total = None
-        editor_query = None
+        editor_query = editor_is_default = None
         last_executed_query = last_result = last_error = None
+    elif mode == "hint":
+        last_result = None
 
     async def event_stream():
         try:

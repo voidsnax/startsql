@@ -5,36 +5,58 @@ import type { QuizQuestion } from "../data/quizzes";
 
 export type { QuizQuestion };
 
-export function parseQuiz(raw: string): QuizQuestion[] | null {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-  try {
-    const data = JSON.parse(raw.slice(start, end + 1));
-    const list = data?.questions;
-    if (!Array.isArray(list)) return null;
-    const clean: QuizQuestion[] = [];
-    for (const item of list) {
-      if (
-        typeof item?.q === "string" &&
-        Array.isArray(item?.options) &&
-        item.options.length >= 2 &&
-        Number.isInteger(item?.answer) &&
-        item.answer >= 0 &&
-        item.answer < item.options.length
-      ) {
-        clean.push({
-          q: item.q,
-          options: item.options.map((o: unknown) => String(o)),
-          answer: item.answer,
-          why: typeof item.why === "string" ? item.why : "",
-        });
-      }
+function answerIndex(value: unknown, options: string[]): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value >= 0 && value < options.length ? value : null;
+  }
+  if (typeof value === "string") {
+    const t = value.trim();
+    if (/^\d+$/.test(t)) {
+      const n = Number(t);
+      return n < options.length ? n : null;
     }
-    return clean.length > 0 ? clean : null;
+    if (/^[A-Za-z]$/.test(t)) {
+      const n = t.toUpperCase().charCodeAt(0) - 65;
+      return n < options.length ? n : null;
+    }
+    const hit = options.findIndex((o) => o.trim().toLowerCase() === t.toLowerCase());
+    return hit >= 0 ? hit : null;
+  }
+  return null;
+}
+
+export function parseQuiz(raw: string): QuizQuestion[] | null {
+  const first = raw.indexOf("{");
+  const last = raw.lastIndexOf("}");
+  if (first < 0 || last <= first) return null;
+
+  let list: unknown;
+  try {
+    const data = JSON.parse(raw.slice(first, last + 1));
+    list = data?.questions ?? data?.quiz;
   } catch {
     return null;
   }
+  if (!Array.isArray(list)) return null;
+
+  const clean: QuizQuestion[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    if (typeof o.q !== "string" || !Array.isArray(o.options) || o.options.length < 2) {
+      continue;
+    }
+    const options = o.options.map((x) => String(x));
+    const answer = answerIndex(o.answer ?? o.correct, options);
+    if (answer === null) continue;
+    clean.push({
+      q: o.q,
+      options,
+      answer,
+      why: typeof o.why === "string" ? o.why : "",
+    });
+  }
+  return clean.length > 0 ? clean : null;
 }
 
 interface Props {

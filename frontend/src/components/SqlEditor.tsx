@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { sql, SQLite } from "@codemirror/lang-sql";
+import { sql, SQLDialect } from "@codemirror/lang-sql";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
@@ -11,6 +11,13 @@ import {
   type CompletionResult,
 } from "@codemirror/autocomplete";
 import type { EditorTable } from "../hooks/useSqlEngine";
+import { SQL_KEYWORDS, SQL_TYPES, SQL_FUNCTIONS } from "../lib/sqlVocabulary";
+
+const DIALECT = SQLDialect.define({
+  keywords: SQL_KEYWORDS,
+  types: SQL_TYPES,
+  builtin: SQL_FUNCTIONS,
+});
 
 interface CompletionData {
   tables: Completion[];
@@ -24,66 +31,9 @@ const EMPTY_DATA: CompletionData = {
   qualified: new Map(),
 };
 
-const KEYWORD_OPTIONS: Completion[] = [
-  "SELECT",
-  "FROM",
-  "WHERE",
-  "AND",
-  "OR",
-  "NOT",
-  "IN",
-  "BETWEEN",
-  "LIKE",
-  "IS",
-  "NULL",
-  "ORDER",
-  "BY",
-  "ASC",
-  "DESC",
-  "LIMIT",
-  "OFFSET",
-  "DISTINCT",
-  "AS",
-  "GROUP",
-  "HAVING",
-  "JOIN",
-  "INNER",
-  "LEFT",
-  "ON",
-  "INSERT",
-  "INTO",
-  "VALUES",
-  "UPDATE",
-  "SET",
-  "DELETE",
-  "CREATE",
-  "TABLE",
-  "ALTER",
-  "DROP",
-  "ADD",
-  "COLUMN",
-  "RENAME",
-  "TO",
-  "PRIMARY",
-  "KEY",
-  "UNIQUE",
-  "DEFAULT",
-  "CHECK",
-  "FOREIGN",
-  "REFERENCES",
-  "IF",
-  "EXISTS",
-  "CASE",
-  "WHEN",
-  "THEN",
-  "ELSE",
-  "END",
-  "COUNT",
-  "SUM",
-  "AVG",
-  "MIN",
-  "MAX",
-].map((label) => ({ label, type: "keyword" }));
+const KEYWORD_OPTIONS: Completion[] = SQL_KEYWORDS.split(/\s+/)
+  .filter(Boolean)
+  .map((word) => ({ label: word.toUpperCase(), type: "keyword" }));
 
 function buildCompletions(schema: EditorTable[]): CompletionData {
   const tables: Completion[] = schema.map((t) => ({
@@ -171,7 +121,7 @@ export function SqlEditor({
 
   const extensions = useMemo(
     () => [
-      sql({ dialect: SQLite, upperCaseKeywords: true }),
+      sql({ dialect: DIALECT, upperCaseKeywords: true }),
       autocompletion({
         override: [(context) => completeSql(dataRef.current, context)],
       }),

@@ -62,13 +62,14 @@ function formatResultForLLM(response: QueryResponse): string | undefined {
   if (!response || response.error || response.results.length === 0)
     return undefined;
   const res = response.results[0];
-  const header = res.columns.join(" | ");
-  const rows = res.values
-    .slice(0, 20)
-    .map((r) => r.map((c) => (c === null ? "NULL" : String(c))).join(" | "));
+  const cell = (c: unknown) => {
+    const s = c === null ? "NULL" : String(c);
+    return s.length > 40 ? `${s.slice(0, 40)}…` : s;
+  };
+  const rows = res.values.slice(0, 8).map((r) => r.map(cell).join(" | "));
   const suffix =
-    res.values.length > 20 ? `\n… (${res.values.length - 20} more rows)` : "";
-  return `Columns: ${header}\nRows (${res.values.length} total):\n${rows.join("\n")}${suffix}`;
+    res.values.length > 8 ? `\n… (${res.values.length - 8} more rows)` : "";
+  return `Columns: ${res.columns.join(" | ")}\nRows (${res.values.length} total):\n${rows.join("\n")}${suffix}`;
 }
 
 function readSchema(execute: (sql: string) => QueryResponse): EditorTable[] {
@@ -170,7 +171,7 @@ export default function App() {
   const aiBlockRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
-  const hintRevealed = useRef(false);
+  const hintRevealed = useRef(-1);
   const lastFailRef = useRef(0);
   const lastErrRef = useRef<string | null>(null);
   const workRef = useRef<HTMLDivElement>(null);
@@ -286,7 +287,11 @@ export default function App() {
   }, [lesson.id]);
 
   useEffect(() => {
-    writeStored(SPLIT_KEY, top.split.toFixed(3));
+    const id = window.setTimeout(
+      () => writeStored(SPLIT_KEY, top.split.toFixed(3)),
+      250,
+    );
+    return () => window.clearTimeout(id);
   }, [top.split]);
 
   const liveSchema = useMemo(
@@ -317,8 +322,10 @@ export default function App() {
   }, [response, lesson.title, currentTask, currentTaskIndex, liveSchema]);
 
   const endEditing = () => {
-    const active = document.activeElement;
-    if (active instanceof HTMLElement) active.blur();
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) active.blur();
+    }
     setKeyboardOpen(false);
   };
 
@@ -435,8 +442,10 @@ export default function App() {
     setLesson(lessons[lessonIndex + 1]);
   };
 
-  const chatContext: ChatContext = useMemo(
-    () => ({
+  const chatContext: ChatContext = useMemo(() => {
+    const isDefault = query === lesson.defaultQuery;
+    const editorQuery = isDefault ? undefined : query;
+    return {
       lessonId: lesson.id,
       lessonTitle: `${lesson.number}. ${lesson.title}`,
       lessonContent: lesson.content,
@@ -444,32 +453,35 @@ export default function App() {
       taskPrompt: currentTask?.prompt,
       taskNumber: currentTask ? currentTaskIndex + 1 : undefined,
       taskTotal: lesson.tasks.length || undefined,
-      editorQuery: query,
-      editorIsDefault: query === lesson.defaultQuery,
-      lastExecutedQuery: lastExecuted ?? undefined,
+      editorQuery,
+      editorIsDefault: isDefault,
+      lastExecutedQuery:
+        lastExecuted && lastExecuted !== editorQuery ? lastExecuted : undefined,
       lastResult: response ? formatResultForLLM(response) : undefined,
       lastError: response?.error ?? undefined,
-    }),
-    [
-      lesson,
-      query,
-      response,
-      currentTask,
-      currentTaskIndex,
-      lastExecuted,
-      schemaText,
-    ],
-  );
+    };
+  }, [
+    lesson,
+    query,
+    response,
+    currentTask,
+    currentTaskIndex,
+    lastExecuted,
+    schemaText,
+  ]);
 
   useEffect(() => {
-    if (hintLevel === 0 && !aiHint) {
-      hintRevealed.current = false;
+    const stage = aiHint ? (hintLoading ? 2 : 3) : hintLevel;
+    if (stage === 0) {
+      hintRevealed.current = -1;
       return;
     }
-    if (hintRevealed.current) return;
-    hintRevealed.current = true;
-    revealIn(lessonPaneRef.current, hintRef.current);
-  }, [hintLevel, aiHint]);
+    if (hintRevealed.current === stage) return;
+    hintRevealed.current = stage;
+    requestAnimationFrame(() =>
+      revealIn(lessonPaneRef.current, hintRef.current),
+    );
+  }, [hintLevel, aiHint, hintLoading]);
 
   const handleHint = async () => {
     if (!currentTask || hintLoading || !hintUnlocked) return;
@@ -486,11 +498,13 @@ export default function App() {
         setAiHint((prev) => (prev ?? "") + t),
       );
     } catch (err) {
-      setAiHint(
-        (err as Error).name === "TypeError"
-          ? "Couldn't reach the assistant!"
-          : (err as Error).message,
-      );
+      if ((err as Error).name !== "AbortError") {
+        setAiHint(
+          (err as Error).name === "TypeError"
+            ? "Couldn't reach the assistant!"
+            : (err as Error).message,
+        );
+      }
     } finally {
       setHintLevel(2);
       setHintLoading(false);
@@ -502,11 +516,7 @@ export default function App() {
     endEditing();
     setTop({ tab: "assistant", split: top.split });
     setMobileView("assistant");
-    send(
-      `Check this query:\n\n\`\`\`sql\n${query.trim()}\n\`\`\``,
-      chatContext,
-      "review",
-    );
+    send(query.trim(), chatContext, "review");
   };
 
   const loadQuiz = async (forceAi = false) => {
@@ -527,11 +537,13 @@ export default function App() {
       else
         setQuizError("The assistant didn't return a usable quiz. Try again.");
     } catch (err) {
-      setQuizError(
-        (err as Error).name === "TypeError"
-          ? "Couldn't reach the assistant!"
-          : (err as Error).message,
-      );
+      if ((err as Error).name !== "AbortError") {
+        setQuizError(
+          (err as Error).name === "TypeError"
+            ? "Couldn't reach the assistant!"
+            : (err as Error).message,
+        );
+      }
     } finally {
       setQuizLoading(false);
     }

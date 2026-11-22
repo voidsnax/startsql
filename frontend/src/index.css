@@ -1,27 +1,28 @@
 :root {
-  /* ── Surfaces: floor → reading → chrome → raised → hover ── */
-  --bg: #0d0f14;
-  --bg-read: #161922;
-  --bg-panel: #1a1e28;
-  --bg-raised: #242936;
-  --bg-hover: #2e3444;
-  --bg-code: #0a0c11;
+  /* ── Surfaces: field → reading → chrome → raised → hover → code well ── */
+  --bg: #0f1119;
+  --bg-read: #1d2029;
+  --bg-panel: #212636;
+  --bg-raised: #2b3143;
+  --bg-hover: #373e52;
+  --bg-code: #0a0c12;
 
   /* ── Lines ── */
-  --line: #2d3142;
-  --line-soft: #232733;
-  --line-strong: #3d4459;
+  --line: #333a4d;
+  --line-soft: #282e3d;
+  --line-strong: #454d63;
 
   /* ── Text ── */
-  --fg: #dee2ec;
-  --fg-muted: #9ca3af;
-  --fg-dim: #767e8d;
+  --fg: #e4e7f0;
+  --fg-muted: #a3aabf;
+  --fg-dim: #949cb2;
   --fg-on-brand: #ffffff;
 
   /* ── Brand ── */
   --brand: #6366f1;
   --brand-hi: #818cf8;
   --brand-lo: #4f46e5;
+  --accent-violet: #7c5cf0;
   --brand-ink: #c7d2fe;
   --brand-code: #a5b4fc;
   --brand-wash: rgba(99, 102, 241, 0.12);
@@ -39,16 +40,23 @@
   --info: #38bdf8;
 
   /* ── Type families ── */
-  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Fira Code', Consolas, monospace;
+  --font-sans:
+    "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Fira Code",
+    Consolas, monospace;
 
   /* ── Type scale ── */
-  --text-2xs: 0.6875rem;   /* 11 — eyebrows, chips */
-  --text-xs: 0.75rem;      /* 12 */
-  --text-sm: 0.8125rem;    /* 13 — UI default */
-  --text-md: 0.875rem;     /* 14 — code, chat */
-  --text-body: clamp(0.9375rem, 0.4vw + 0.875rem, 1rem);        /* 15 → 16 prose */
-  --text-title: clamp(1.1875rem, 1.2vw + 0.875rem, 1.375rem);   /* 19 → 22 title */
+  --text-2xs: 0.6875rem; /* 11 — eyebrows, chips */
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.8125rem; /* 13 — UI default */
+  --text-md: 0.875rem; /* 14 — code, chat */
+  --text-body: clamp(0.9375rem, 0.4vw + 0.875rem, 1rem); /* 15 → 16 prose */
+  --text-title: clamp(
+    1.1875rem,
+    1.2vw + 0.875rem,
+    1.375rem
+  ); /* 19 → 22 title */
 
   --lh-tight: 1.3;
   --lh-body: 1.75;
@@ -70,10 +78,10 @@
 
   /* ── Layout metrics ── */
   --header-h: 58px;
-  --strip-h: 48px;   /* collapsed lesson strip == chat header height */
+  --strip-h: 48px; /* collapsed lesson strip == chat header height */
   --chat-w: 320px;
   --rail-w: 48px;
-  --measure: 760px;  /* reading width for lesson prose + tasks */
+  --measure: 760px; /* reading width for lesson prose + tasks */
 
   /* ── Motion ── */
   --dur-fast: 0.14s;
@@ -110,10 +118,30 @@ body {
   font-size: var(--text-md);
   line-height: 1.5;
   color: var(--fg);
-  background:
-    radial-gradient(1100px 560px at 12% -14%, rgba(99, 102, 241, 0.07), transparent 62%),
-    radial-gradient(880px 460px at 102% -6%, rgba(56, 189, 248, 0.04), transparent 58%),
-    var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(
+      760px 380px at 14% 0%,
+      rgba(99, 102, 241, 0.24),
+      transparent 66%
+    ),
+    radial-gradient(
+      680px 340px at 88% 2%,
+      rgba(56, 189, 248, 0.15),
+      transparent 62%
+    ),
+    radial-gradient(
+      620px 520px at -8% 82%,
+      rgba(124, 92, 240, 0.12),
+      transparent 64%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(99, 102, 241, 0.1) 0%,
+      rgba(15, 17, 25, 0) 44%,
+      rgba(56, 189, 248, 0.06) 100%
+    );
+  background-repeat: no-repeat;
   height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;

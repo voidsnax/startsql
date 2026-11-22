@@ -2,7 +2,7 @@
 
 An interactive SQL learning platform for beginners, with an AI tutor.
 
-![StartSQL screenshot](assets/screenshot-v1.png)
+![StartSQL screenshot](assets/screenshot-v2.png)
 
 ## Prerequisites
 

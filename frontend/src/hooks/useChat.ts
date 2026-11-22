@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  kind?: 'query';
 }
 
 export interface ChatContext {
@@ -24,6 +25,8 @@ export type AiMode = 'chat' | 'hint' | 'review' | 'quiz';
 
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:8000/api/chat';
+
+const MAX_HISTORY = 6;
 
 function contextFields(c: ChatContext) {
   return {
@@ -88,12 +91,14 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const askAbortRef = useRef<AbortController | null>(null);
+  // One controller per silent mode, so a quiz never cancels a running hint.
+  const askRef = useRef<{ hint?: AbortController; quiz?: AbortController }>({});
 
   useEffect(
     () => () => {
       abortRef.current?.abort();
-      askAbortRef.current?.abort();
+      askRef.current.hint?.abort();
+      askRef.current.quiz?.abort();
     },
     [],
   );
@@ -121,7 +126,12 @@ export function useChat() {
     async (text: string, context: ChatContext, mode: AiMode = 'chat') => {
       if (streaming || !text.trim()) return;
 
-      const next: ChatMessage[] = [...messages, { role: 'user', content: text }];
+      const outgoing: ChatMessage =
+        mode === 'review'
+          ? { role: 'user', content: text, kind: 'query' }
+          : { role: 'user', content: text };
+
+      const next: ChatMessage[] = [...messages, outgoing];
       setMessages([...next, { role: 'assistant', content: '' }]);
       setStreaming(true);
 
@@ -133,7 +143,9 @@ export function useChat() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: next.slice(-8),
+            messages: next
+              .slice(-MAX_HISTORY)
+              .map(({ role, content }) => ({ role, content })),
             mode,
             ...contextFields(context),
           }),
@@ -150,16 +162,16 @@ export function useChat() {
     [messages, streaming, appendToLast, replaceLast],
   );
 
-  /** Silent one-shot request — never touches the conversation. */
+    /** Silent one-shot request — never touches the conversation. */
   const ask = useCallback(
     async (
       mode: 'hint' | 'quiz',
       context: ChatContext,
       onToken?: (t: string) => void,
     ): Promise<string> => {
-      askAbortRef.current?.abort();
+      askRef.current[mode]?.abort();
       const controller = new AbortController();
-      askAbortRef.current = controller;
+      askRef.current[mode] = controller;
 
       let text = '';
       const res = await fetch(API_URL, {

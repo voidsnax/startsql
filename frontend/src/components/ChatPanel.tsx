@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Markdown } from "./Markdown";
+import { Icon } from "./Icon";
 import type { ChatMessage } from "../hooks/useChat";
 
 interface Props {
@@ -47,7 +48,7 @@ export function ChatPanel({
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 92)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   }, [input]);
 
   const scrollToLatest = useCallback(() => {
@@ -110,27 +111,50 @@ export function ChatPanel({
             </div>
           </div>
         )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            ref={i === lastUserIndex ? anchorRef : undefined}
-            className={`chat-msg chat-msg-${m.role}`}
-          >
-            {m.role === "assistant" ? (
-              m.content ? (
-                <Markdown>{m.content}</Markdown>
+
+        {messages.map((m, i) => {
+          const isQuery = m.kind === "query";
+          const isReply = m.role === "assistant";
+          return (
+            <div
+              key={i}
+              ref={i === lastUserIndex ? anchorRef : undefined}
+              className={
+                isQuery
+                  ? "chat-query"
+                  : isReply
+                    ? "chat-reply"
+                    : "chat-msg chat-msg-user"
+              }
+            >
+              {isQuery ? (
+                <>
+                  <div className="chat-query-head">
+                    <Icon name="sparkles" size={13} />
+                    Check this query
+                  </div>
+                  <Markdown>{`\`\`\`sql\n${m.content}\n\`\`\``}</Markdown>
+                </>
+              ) : isReply ? (
+                m.content ? (
+                  <Markdown>{m.content}</Markdown>
+                ) : (
+                  <span
+                    className="chat-typing"
+                    aria-label="Assistant is typing"
+                  >
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                )
               ) : (
-                <span className="chat-typing" aria-label="Assistant is typing">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              )
-            ) : (
-              <Markdown>{m.content}</Markdown>
-            )}
-          </div>
-        ))}
+                <Markdown>{m.content}</Markdown>
+              )}
+            </div>
+          );
+        })}
+
         {messages.length > 0 && (
           <div className="chat-tail" ref={tailRef} aria-hidden="true" />
         )}
